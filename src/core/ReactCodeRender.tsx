@@ -4,7 +4,7 @@ import {ReactNode} from "react";
 export interface BlockProps {
     type: BlockType,
     data?: any,
-    children: { [name: string]: ReactNode },
+    children: { [name: string]: JSX.Element },
 }
 
 export interface BlockRender {
@@ -28,7 +28,7 @@ export function makeRenderer(renderer: LanguageRender) {
 
         const defaultChild = "<empty>";
 
-        const children: { [name: string]: ReactNode } = {};
+        const children: { [name: string]: JSX.Element } = {};
         if (root.children)
             for (const [name, child] of Object.entries(root.children)) {
 
