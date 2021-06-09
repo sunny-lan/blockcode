@@ -1,4 +1,4 @@
-import {Block, BlockType} from "~core/Code";
+import {Block, BlockType, ILiveBlock} from "~core/Code";
 import * as React from "react";
 
 export interface BlockProps {
@@ -15,19 +15,14 @@ export interface LanguageRender {
     [blockType: string]: BlockRender
 }
 
-export interface BlockSpecificProps {
-    children?: { [name: string]: BlockSpecificProps },
-}
-
 interface GlobalProps {
-    setSelected(block: Block): void,
-
-    selected?: Block,
+    selected?: ILiveBlock,
+    setSelected(block:ILiveBlock): void
 }
+
 
 export interface RenderProps {
-    root: Block,
-    blockSpecific: BlockSpecificProps,
+    block: ILiveBlock,
     global: GlobalProps
 }
 
@@ -35,45 +30,44 @@ export type GeneralBlockRender = (props: RenderProps) => JSX.Element;
 
 export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
     return function render(props: RenderProps): JSX.Element {
-        const root = props.root
+        const block = props.block
 
-        if(!root.type){
+        if (!block.value.type) {
             const style: any = {};
-            if (props.global.selected === root) {
+            if (props.global.selected === block) {
                 style['background'] = 'blue'
             }
             return <button
-                onClick={() => props.global.setSelected(root)}
+                onClick={() => props.global.setSelected(block)}
                 style={style}
             >
                 empty
             </button>
         }
 
-        if (!(root.type in renderer))
-            throw new Error(`Invalid component to render: ${root.type}`);
+        if (!(block.value.type in renderer))
+            throw new Error(`Invalid component to render: ${block.value.type}`);
 
 
         const children: { [name: string]: JSX.Element } = {};
-        if (root.children) {
+        if (block.children) {
 
-            for (const [name, child] of Object.entries(root.children)) {
+            for (const [name, child] of Object.entries(block.children)) {
                 //const blockSpecific = props.blockSpecific.children[name];
 
                 children[name] = render({
-                    root: child,
-                    blockSpecific:{},
+                    block: child,
                     global: props.global
                 })
 
             }
         }
 
-        const blockRenderer = renderer[root.type];
+        const blockRenderer = renderer[block.value.type];
         return blockRenderer({
             children,
-            data: root.data,
-            type: root.type,
+            data: block.value.data,
+            type: block.value.type,
         })
     }
 }

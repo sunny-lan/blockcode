@@ -17,7 +17,7 @@ export default class App extends React.Component {
 
             }}
             languageRender={CppRender}
-            savedContents={{
+            root={{
                 type: 'if',
                 children: {
                     "condition": {},
