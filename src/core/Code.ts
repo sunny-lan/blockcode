@@ -9,91 +9,43 @@ export interface Block {
     data?: any,
 }
 
+type  LiveBlockChildren = { [name: string]: ILiveBlock };
 
-export class LiveBlock {
-    parent?: LiveBlock
-    block: Block = {};
-    children: { [name: string]: LiveBlock } = {}
-    onChanged: (() => void)[] = []
-    file?: LiveFile
-
-    /**
-     * Sets the data in this block. Does not call update/setData for children (not deep)
-     * Calls update for all ancestors (ensures references are updated)
-     * @param data the data to set
-     */
-    setData(data: Block) {
-
-        const newChildren: { [name: string]: LiveBlock } = {};
-
-        //diff children
-        if (data.children) {
-            const oldChildren = this.block.children ?? {};
-            for (const [name, block] of Object.entries(data.children)) {
-
-                if (oldChildren[name] === block) {
-                    //reference didn't change, reuse old child
-                    newChildren[name] = this.children[name];
-                } else {
-                    //reference changed, recreate subtree
-                    const newChild = new LiveBlock();
-                    newChild.setData(block)
-                    newChild.parent = this;
-                    newChild.file = this.file;
-
-                    //when the child changes, we need to update self as well
-                    newChild.onChanged.push(() => {
-                        //if child was changed, then we expect this block to be valid
-                        if (!this.block.type )
-                            throw new Error("Child of invalid block changed");
-
-                        this.setData({
-                            ...this.block,
-                            children: {
-                                ...this.block.children,
-                                [name]: newChild.block,
-                            }
-                        })
-                    })
-
-                    newChildren[name] = newChild;
-                }
-            }
-
-            this.children = newChildren;
-        }
-        this.block = data;
-        for (const listener of this.onChanged) {
-            listener();
-        }
-    }
-
-
+export interface ILiveBlock {
+    readonly parent?: ILiveBlock
+    readonly block: Block
+    readonly children: LiveBlockChildren;
 }
 
-export class LiveFile {
-    root: LiveBlock
-    onChange: ((root: Block) => void)[] = []
 
-    constructor() {
-        this.root = new LiveBlock()
-        this.root.file = this;
+export function makeLive(
+    block: Block,
+    old?: ILiveBlock,
+    parent: ILiveBlock|undefined=old?.parent
+): ILiveBlock {
 
-        this.root.onChanged.push(() => {
-            const data = this.root.block;
-            if (!data.type)
-                throw new Error("Invalid block changed");
-            for (const listener of this.onChange) {
-                listener(data);
-            }
-        })
+    if (old?.block === block) {
+        return old;
     }
+
+
+    const res: ILiveBlock = {
+        children: {},
+        block,
+        parent,
+    };
+
+    let newChildren: LiveBlockChildren = res.children;
+    if (block.children) {
+        for (const [name, child] of Object.entries(block.children)) {
+            newChildren[name] = makeLive(child, old?.children[name], res);
+        }
+    }
+
+    return Object.freeze(res)
 }
 
 export interface Language {
-    root(): Block
 
-    toCode(file: LiveFile): string;
-
-    suggestChildren(block: LiveBlock, child: string): Block[]
+    suggestChildren(block: ILiveBlock, childName: string): Block[]
 }

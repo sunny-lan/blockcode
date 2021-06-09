@@ -1,15 +1,12 @@
 import * as React from "react";
-import {Block, LiveFile, Language} from "./Code";
-import {GeneralBlockRender, LanguageRender, makeRenderer} from "./ReactCodeRender";
+import {Block, ILiveBlock, Language, makeLive} from "./Code";
+import {GeneralBlockRender, LanguageRender, makeRenderer, BlockContext} from "./ReactCodeRender";
 
 export interface EditorProps {
     language: Language,
     languageRender: LanguageRender
 
-    /**
-     * The last loaded contents from disk. If this is updated, everything within the current state is wiped
-     */
-    savedContents: Block,
+    content: Block,
 
     /**
      * Called whenever the user makes an edit to the code
@@ -18,23 +15,18 @@ export interface EditorProps {
     onChange(block: Block): void,
 }
 
+
 export default class Editor extends React.Component<EditorProps, {
-    root: Block,
-    selected?:Block
+    curLive: ILiveBlock,
+    selected?: ILiveBlock
 }> {
-    file: LiveFile = new LiveFile()
     languageRender: GeneralBlockRender
 
     constructor(props: EditorProps) {
         super(props);
 
         this.languageRender = makeRenderer(props.languageRender)
-        this.file.root.setData(props.savedContents)
-        this.state={
-            root:this.file.root.block
-        };
-        this.file.onChange.push(root => this.setState({root}))
-        this.file.onChange.push(props.onChange)
+        this.state = {curLive: makeLive(props.content)};
     }
 
     onComponentDidUpdate(prevProps: EditorProps) {
@@ -43,27 +35,52 @@ export default class Editor extends React.Component<EditorProps, {
             this.languageRender = makeRenderer(this.props.languageRender)
         }
 
-        //update event handler
-        if (prevProps.onChange != this.props.onChange) {
-            const idx = this.file.onChange.indexOf(this.props.onChange);
-            this.file.onChange[idx] = this.props.onChange;
-        }
+        this.setState({
+            ...this.state,
+            curLive: makeLive(this.props.content, this.state.curLive)
+        })
+    }
 
-        //update internal AST to new data
-        if (prevProps.savedContents != this.props.savedContents) {
-            //this will cascade, calling setState
-            this.file.root.setData(this.props.savedContents)
-        }
+    setSelected(selected: ILiveBlock) {
+        this.setState({...this.state, selected});
     }
 
     render() {
-        return this.languageRender({
-            root: this.state.root,
-            blockSpecific: {},
-            global:{
-                setSelected:selected=>this.setState({...this.state, selected}),
-                selected:this.state.selected,
+        let suggestions;
+        const selectedParent = this.state.selected?.parent;
+        if (selectedParent) {
+            const childName = Object.keys(selectedParent.children)
+                .find(name => selectedParent.children[name] === this.state.selected);
+            if (!childName) {
+                console.error(this.state.selected, selectedParent)
+                throw new Error(`Invalid child: ${childName} of ${JSON.stringify(selectedParent.block)}!`)
             }
-        })
+
+            suggestions = <div>
+                Suggestions:
+                <ul>
+                {this.props.language.suggestChildren(
+                    selectedParent,
+                    childName
+                )
+                    .map(child => {
+                        return <li>{child.type}</li>
+                    })
+
+                }</ul>
+            </div>
+        }
+
+        return <div>
+            <div><BlockContext.Provider value={{
+                setSelected: this.setSelected.bind(this),
+                selected: this.state.selected,
+            }}>
+                {this.languageRender({
+                    root: this.state.curLive,
+                })}
+            </BlockContext.Provider></div>
+            {suggestions}
+        </div>
     }
 }

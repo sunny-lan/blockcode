@@ -1,5 +1,5 @@
 import * as React from "react";
-import {CppRender} from "./lang/Cpp";
+import {CppLang, CppRender} from "./lang/Cpp";
 import Editor from "./core/Editor";
 
 export default class App extends React.Component {
@@ -13,15 +13,16 @@ export default class App extends React.Component {
 
 
         return <Editor
-            language={{
-
-            }}
+            language={CppLang}
             languageRender={CppRender}
-            savedContents={{
+            content={{
                 type: 'if',
                 children: {
-                    "condition": {},
+                    "condition": {
+                        data:'nope'
+                    },
                     "code": {
+                        data:'yup',
                         type: "hello"
                     }
                 }

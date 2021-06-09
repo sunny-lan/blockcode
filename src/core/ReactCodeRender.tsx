@@ -1,5 +1,13 @@
-import {Block, BlockType} from "~core/Code";
+import {Block, BlockType, ILiveBlock} from "~core/Code";
 import * as React from "react";
+
+export interface BlockContextType {
+    setSelected(block: ILiveBlock): void,
+
+    selected?: ILiveBlock,
+}
+
+export const BlockContext = React.createContext<BlockContextType | undefined>(undefined);
 
 export interface BlockProps {
     type: BlockType,
@@ -15,20 +23,8 @@ export interface LanguageRender {
     [blockType: string]: BlockRender
 }
 
-export interface BlockSpecificProps {
-    children?: { [name: string]: BlockSpecificProps },
-}
-
-interface GlobalProps {
-    setSelected(block: Block): void,
-
-    selected?: Block,
-}
-
 export interface RenderProps {
-    root: Block,
-    blockSpecific: BlockSpecificProps,
-    global: GlobalProps
+    root: ILiveBlock,
 }
 
 export type GeneralBlockRender = (props: RenderProps) => JSX.Element;
@@ -36,22 +32,31 @@ export type GeneralBlockRender = (props: RenderProps) => JSX.Element;
 export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
     return function render(props: RenderProps): JSX.Element {
         const root = props.root
+        const block = root.block
 
-        if(!root.type){
-            const style: any = {};
-            if (props.global.selected === root) {
-                style['background'] = 'blue'
-            }
-            return <button
-                onClick={() => props.global.setSelected(root)}
-                style={style}
-            >
-                empty
-            </button>
+        if (!block.type) {
+
+            return <BlockContext.Consumer>
+                {context => {
+
+
+                    const style: any = {};
+                    if (context?.selected === root) {
+                        style['background'] = 'blue'
+                    }
+                    return <button
+                        onClick={() => context && context.setSelected(root)}
+                        style={style}
+                        disabled={!context}
+                    >
+                        empty
+                    </button>
+                }}
+            </BlockContext.Consumer>
         }
 
-        if (!(root.type in renderer))
-            throw new Error(`Invalid component to render: ${root.type}`);
+        if (!(block.type in renderer))
+            throw new Error(`Invalid component to render: ${block.type}`);
 
 
         const children: { [name: string]: JSX.Element } = {};
@@ -60,20 +65,18 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
             for (const [name, child] of Object.entries(root.children)) {
                 //const blockSpecific = props.blockSpecific.children[name];
 
-                children[name] = render({
+                children[name] = (<div key={name}>{render({
                     root: child,
-                    blockSpecific:{},
-                    global: props.global
-                })
+                })}</div>)
 
             }
         }
 
-        const blockRenderer = renderer[root.type];
+        const blockRenderer = renderer[block.type];
         return blockRenderer({
             children,
-            data: root.data,
-            type: root.type,
+            data: block.data,
+            type: block.type,
         })
     }
 }
