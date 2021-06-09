@@ -1,8 +1,10 @@
-import {Block, BlockType, ILiveBlock} from "~core/Code";
+import {Block, BlockType, ILiveBlock, Live} from "./Code";
 import * as React from "react";
-
+export interface UpdateableBlock {
+    block: ILiveBlock, updateState:(newRoot:ILiveBlock)=>void
+}
 export interface BlockContextType {
-    setSelected(block: ILiveBlock): void,
+    onSelect(value:UpdateableBlock): void,
 
     selected?: ILiveBlock,
 }
@@ -25,7 +27,9 @@ export interface LanguageRender {
 
 export interface RenderProps {
     root: ILiveBlock,
+    onChange:(newRoot:ILiveBlock)=>void,
 }
+
 
 export type GeneralBlockRender = (props: RenderProps) => JSX.Element;
 
@@ -45,7 +49,10 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
                         style['background'] = 'blue'
                     }
                     return <button
-                        onClick={() => context && context.setSelected(root)}
+                        onClick={() => context && context.onSelect({
+                            block:root,
+                            updateState:props.onChange,
+                        })}
                         style={style}
                         disabled={!context}
                     >
@@ -63,12 +70,12 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
         if (root.children) {
 
             for (const [name, child] of Object.entries(root.children)) {
-                //const blockSpecific = props.blockSpecific.children[name];
-
                 children[name] = (<div key={name}>{render({
                     root: child,
+                    onChange(newChild){
+                        props.onChange(Live.setChild(root, name, newChild))
+                    }
                 })}</div>)
-
             }
         }
 

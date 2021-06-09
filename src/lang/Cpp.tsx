@@ -5,7 +5,7 @@ import {Block, ILiveBlock, Language} from "~core/Code";
 
 const blockTemplates:Block[]=[
     {
-        type:'print',
+        type:'hello',
     },
     {
         type:'if',

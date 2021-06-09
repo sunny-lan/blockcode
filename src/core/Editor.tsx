@@ -1,6 +1,6 @@
 import * as React from "react";
-import {Block, ILiveBlock, Language, makeLive} from "./Code";
-import {GeneralBlockRender, LanguageRender, makeRenderer, BlockContext} from "./ReactCodeRender";
+import {Block, ILiveBlock, Language, Live} from "./Code";
+import {GeneralBlockRender, LanguageRender, makeRenderer, BlockContext, UpdateableBlock} from "./ReactCodeRender";
 
 export interface EditorProps {
     language: Language,
@@ -18,7 +18,7 @@ export interface EditorProps {
 
 export default class Editor extends React.Component<EditorProps, {
     curLive: ILiveBlock,
-    selected?: ILiveBlock
+    selected?: UpdateableBlock
 }> {
     languageRender: GeneralBlockRender
 
@@ -26,33 +26,36 @@ export default class Editor extends React.Component<EditorProps, {
         super(props);
 
         this.languageRender = makeRenderer(props.languageRender)
-        this.state = {curLive: makeLive(props.content)};
+        this.state = {curLive: Live.makeLive(props.content)};
     }
 
-    onComponentDidUpdate(prevProps: EditorProps) {
+    componentDidUpdate(prevProps: EditorProps) {
         //update language renderer
-        if (prevProps.languageRender != this.props.languageRender) {
+        if (prevProps.languageRender !== this.props.languageRender) {
             this.languageRender = makeRenderer(this.props.languageRender)
         }
 
-        this.setState({
-            ...this.state,
-            curLive: makeLive(this.props.content, this.state.curLive)
-        })
+        if(this.props.content!==prevProps.content) {
+            this.setState({
+                ...this.state,
+                curLive: Live.makeLive(this.props.content, this.state.curLive)
+            })
+        }
     }
 
-    setSelected(selected: ILiveBlock) {
+    onSelect(selected?: UpdateableBlock) {
         this.setState({...this.state, selected});
     }
 
     render() {
         let suggestions;
-        const selectedParent = this.state.selected?.parent;
+        const selected= this.state.selected?.block;
+        const selectedParent = selected?.parent;
         if (selectedParent) {
             const childName = Object.keys(selectedParent.children)
-                .find(name => selectedParent.children[name] === this.state.selected);
+                .find(name => selectedParent.children[name] === selected);
             if (!childName) {
-                console.error(this.state.selected, selectedParent)
+                console.error(selected, selectedParent)
                 throw new Error(`Invalid child: ${childName} of ${JSON.stringify(selectedParent.block)}!`)
             }
 
@@ -63,8 +66,19 @@ export default class Editor extends React.Component<EditorProps, {
                     selectedParent,
                     childName
                 )
-                    .map(child => {
-                        return <li>{child.type}</li>
+                    .map(suggestion => {
+                        const block= Live.makeLive(suggestion)
+
+                        return <li key={suggestion.type}>
+                            <button onClick={()=>{
+                                this.state.selected?.updateState(block)
+
+                            }}>{suggestion.type}</button>
+                            {this.languageRender({
+                                root: block,
+                                onChange(){throw new Error('Did not expect onchange to be called for suggestion')}
+                            })}
+                        </li>
                     })
 
                 }</ul>
@@ -73,11 +87,14 @@ export default class Editor extends React.Component<EditorProps, {
 
         return <div>
             <div><BlockContext.Provider value={{
-                setSelected: this.setSelected.bind(this),
-                selected: this.state.selected,
+                onSelect: this.onSelect.bind(this),
+                selected: this.state.selected?.block,
             }}>
                 {this.languageRender({
                     root: this.state.curLive,
+                    onChange:(newRoot)=>{
+                        this.props.onChange(newRoot.block)
+                    }
                 })}
             </BlockContext.Provider></div>
             {suggestions}
