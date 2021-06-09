@@ -4,55 +4,54 @@ export type BlockType = string;
  * Must be a plain JSON serializable object, and can be deep copied!
  */
 export interface Block {
-    type: BlockType,
+    type?: BlockType,
     children?: { [name: string]: Block },
     data?: any,
-}
-
-const INVALID: Block = {
-    children: {},
-    type: '__INVALID__'
 }
 
 
 export class LiveBlock {
     parent?: LiveBlock
-    data: Block = INVALID;
+    block: Block = {};
     children: { [name: string]: LiveBlock } = {}
     onChanged: (() => void)[] = []
+    file?: LiveFile
 
-    constructor(data: Block, parent?: LiveBlock) {
-        this.parent = parent;
-        this.setData(data)
-    }
-
+    /**
+     * Sets the data in this block. Does not call update/setData for children (not deep)
+     * Calls update for all ancestors (ensures references are updated)
+     * @param data the data to set
+     */
     setData(data: Block) {
-        if (data === INVALID)
-            throw "failed";
 
         const newChildren: { [name: string]: LiveBlock } = {};
 
         //diff children
         if (data.children) {
-            const oldChildren=this.data.children??{};
+            const oldChildren = this.block.children ?? {};
             for (const [name, block] of Object.entries(data.children)) {
+
                 if (oldChildren[name] === block) {
                     //reference didn't change, reuse old child
                     newChildren[name] = this.children[name];
                 } else {
                     //reference changed, recreate subtree
-                    const newChild = new LiveBlock(block, this);
+                    const newChild = new LiveBlock();
+                    newChild.setData(block)
+                    newChild.parent = this;
+                    newChild.file = this.file;
 
                     //when the child changes, we need to update self as well
                     newChild.onChanged.push(() => {
-                        if (this.data === INVALID)
-                            throw "failed";
+                        //if child was changed, then we expect this block to be valid
+                        if (!this.block.type )
+                            throw new Error("Child of invalid block changed");
 
                         this.setData({
-                            ...this.data,
+                            ...this.block,
                             children: {
-                                ...this.data.children,
-                                [name]: newChild.data,
+                                ...this.block.children,
+                                [name]: newChild.block,
                             }
                         })
                     })
@@ -63,7 +62,7 @@ export class LiveBlock {
 
             this.children = newChildren;
         }
-        this.data = data;
+        this.block = data;
         for (const listener of this.onChanged) {
             listener();
         }
@@ -72,16 +71,18 @@ export class LiveBlock {
 
 }
 
-export class File {
+export class LiveFile {
     root: LiveBlock
     onChange: ((root: Block) => void)[] = []
 
-    constructor(root: Block) {
-        this.root = new LiveBlock(root)
+    constructor() {
+        this.root = new LiveBlock()
+        this.root.file = this;
+
         this.root.onChanged.push(() => {
-            const data = this.root.data;
-            if (data === INVALID)
-                throw "failed";
+            const data = this.root.block;
+            if (!data.type)
+                throw new Error("Invalid block changed");
             for (const listener of this.onChange) {
                 listener(data);
             }
@@ -92,7 +93,7 @@ export class File {
 export interface Language {
     root(): Block
 
-    toCode(file: File): string;
+    toCode(file: LiveFile): string;
 
     suggestChildren(block: LiveBlock, child: string): Block[]
 }

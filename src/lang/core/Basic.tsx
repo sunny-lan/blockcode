@@ -11,11 +11,11 @@ export function fromTemplate(template: string): BlockRender {
     let state: State = State.Normal;
     let token = '';
     let escape = false;
-    type d = {
-        x: boolean,
-        s: string,
+    type Token = {
+        isTemplate: boolean,
+        value: string,
     }
-    const ans: d[] = [];
+    const tokens: Token[] = [];
 
     for (let i = 0; i < template.length; i++) {
         const char = template[i];
@@ -29,18 +29,18 @@ export function fromTemplate(template: string): BlockRender {
                 if (char === '$' && state === State.Normal)
                     state = State.Template1;
                 else if (char === '}' && state === State.Template2) {
-                    ans.push({
-                        s: token,
-                        x: true,
+                    tokens.push({
+                        value: token,
+                        isTemplate: true,
                     })
                     token = '';
                     state = State.Normal;
                 } else if (state === State.Template1) {
                     if (char === '{') {
                         state = State.Template2;
-                        ans.push({
-                            s: token,
-                            x: false,
+                        tokens.push({
+                            value: token,
+                            isTemplate: false,
                         })
                         token = '';
                     } else {
@@ -53,13 +53,23 @@ export function fromTemplate(template: string): BlockRender {
             }
         }
     }
-    ans.push({
-        s: token,
-        x: true,
-    })
+
+    if (token.length > 0)
+        tokens.push({
+            value: token,
+            isTemplate: false,
+        })
 
     return function (block: BlockProps) {
-        const ans1: (string | JSX.Element)[] = ans.map(x => x.x ? block.children[x.s] : x.s);
+        const ans1: (string | JSX.Element)[] = tokens.map(token => {
+            if (token.isTemplate) {
+                if (token.value in block.children)
+                    return block.children[token.value];
+                else
+                    throw new Error(`Missing child '${token.value}' in block '${block.type}'`);
+            }
+            return token.value;
+        });
         return <pre>
             {ans1}
         </pre>

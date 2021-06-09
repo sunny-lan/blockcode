@@ -1,8 +1,6 @@
 import * as React from "react";
-import {makeRenderer} from "./core/ReactCodeRender";
 import {CppRender} from "./lang/Cpp";
-
-const F = makeRenderer(CppRender);
+import Editor from "./core/Editor";
 
 export default class App extends React.Component {
     constructor(props: {}) {
@@ -14,16 +12,21 @@ export default class App extends React.Component {
     render() {
 
 
-        return <F root={{
-            type: 'if',
-            children: {
-                "condition":{
-                    type:"hello",
-                },
-                "code": {
-                    type:"hello"
+        return <Editor
+            language={{
+
+            }}
+            languageRender={CppRender}
+            savedContents={{
+                type: 'if',
+                children: {
+                    "condition": {},
+                    "code": {
+                        type: "hello"
+                    }
                 }
-            }
-        }}/>
+            }}
+            onChange={_=>{}}
+        />
     }
 }
