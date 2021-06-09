@@ -70,12 +70,12 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
         if (root.children) {
 
             for (const [name, child] of Object.entries(root.children)) {
-                children[name] = (<div key={name}>{render({
+                children[name] = (<React.Fragment key={name}>{render({
                     root: child,
                     onChange(newChild){
                         props.onChange(Live.setChild(root, name, newChild))
                     }
-                })}</div>)
+                })}</React.Fragment>)
             }
         }
 

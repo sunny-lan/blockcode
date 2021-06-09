@@ -3,7 +3,15 @@ export type Token = {
     value: string,
 }
 
-export function parseTemplateString(template: string): Token[] {
+export function parseTemplateParam(token: string) {
+    const split = token.split('|')
+    return {
+        name: split[0],
+        params: (token[1]??'').split(',')
+    }
+}
+
+export function parseTemplate(template: string): Token[] {
     enum State {
         Normal,
         Template1,

@@ -24,9 +24,5 @@ export const CppLang: Language = {
 };
 export const CppRender: LanguageRender = {
     "if": fromTemplate("if(${condition})${code}"),
-    "hello": function (block: BlockProps) {
-        return (<pre>
-            print("hello");
-        </pre>)
-    }
+    "hello": fromTemplate(`print("hello");`)
 };
