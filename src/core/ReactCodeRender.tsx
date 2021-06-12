@@ -10,6 +10,12 @@ export interface EditorContextType {
     selected?: Block,
 
 }
+export function withBlockCtx(fn:(ctx:BlockContextType)=>JSX.Element) {
+    return <BlockContext.Consumer>{ctx => {
+        if (!ctx) throw new Error("Cannot use block outside of blockcontext!!");
+        return fn(ctx)
+    }}</BlockContext.Consumer>;
+}
 export const BlockContext = React.createContext<BlockContextType | undefined>(undefined);
 export const EditorContext = React.createContext<EditorContextType | undefined>(undefined);
 

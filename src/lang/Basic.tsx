@@ -1,4 +1,4 @@
-import {BlockContext, BlockProps, BlockRender, LanguageRender} from "~/core/ReactCodeRender";
+import {BlockContext, BlockProps, BlockRender, LanguageRender, withBlockCtx} from "~/core/ReactCodeRender";
 import {parseTemplate, parseTemplateParam} from "~/core/Util";
 import * as React from "react";
 import {Block, BlockChildren, BlockType, ILiveBlock} from "~/core/Code";
@@ -15,17 +15,14 @@ export function fromTemplate(template: string): BlockRender {
                 const parsed = parseTemplateParam(token.value);
                 if (parsed.name in block.children) {
                     const child = block.children[parsed.name];
-                    let res = <BlockContext.Consumer>{ctx => {
-                        if (!ctx) throw new Error("d");
-                        return ctx.RenderUnknown({
-                            root: child,
-                            onChange: x => props.childOnChange(parsed.name, x)
-                        })
-                    }}</BlockContext.Consumer>;
+                    let res = withBlockCtx(ctx=>ctx.RenderUnknown({
+                        root: child,
+                        onChange: x => props.childOnChange(parsed.name, x)
+                    }))
                     if ('inline' in parsed.params)
                         res = <span>{res}</span>
 
-                    return res;
+                    return <React.Fragment key={parsed.name}>{ res}</React.Fragment>;
                 } else
                     throw new Error(`Missing child '${parsed.name}' in block '${block.type}'`);
             }
