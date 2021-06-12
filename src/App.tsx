@@ -12,13 +12,8 @@ export default class App extends React.Component<any, {
             root: {
                 type: 'if',
                 children: {
-                    "condition": {
-                        data: 'nope'
-                    },
-                    "code": {
-                        data: 'yup',
-                        type: "hello"
-                    }
+                    "condition": {},
+                    "code": {}
                 }
             }
         };
