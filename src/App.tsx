@@ -1,5 +1,5 @@
 import * as React from "react";
-import {CppLang, CppRender} from "./lang/Cpp";
+import {ProceduralLang, ProceduralRender} from "./lang/Procedural";
 import Editor from "./core/Editor";
 import {Block} from "./core/Code";
 
@@ -29,8 +29,8 @@ export default class App extends React.Component<any, {
 
 
         return <Editor
-            language={CppLang}
-            languageRender={CppRender}
+            language={ProceduralLang}
+            languageRender={ProceduralRender}
             content={this.state.root}
             onChange={root => {
                 this.setState({...this.state, root})

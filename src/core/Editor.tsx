@@ -62,7 +62,7 @@ export default class Editor extends React.Component<EditorProps, {
             suggestions = <div>
                 Suggestions:
                 <ul>
-                {this.props.language.suggestChildren(
+                {this.props.language.allowedChildren(
                     selectedParent,
                     childName
                 )

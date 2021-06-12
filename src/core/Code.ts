@@ -1,11 +1,11 @@
 export type BlockType = string;
-
+export type BlockChildren={ [name: string]: Block };
 /**
  * Must be a plain JSON serializable object, and can be deep copied!
  */
 export interface Block {
     type?: BlockType,
-    children?: { [name: string]: Block },
+    children?: BlockChildren,
     data?: any,
 }
 
@@ -70,5 +70,5 @@ export const Live = {
 
 export interface Language {
 
-    suggestChildren(block: ILiveBlock, childName: string): Block[]
+    allowedChildren(block: ILiveBlock, childName: string): Block[]
 }

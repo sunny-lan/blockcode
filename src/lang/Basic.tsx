@@ -25,13 +25,3 @@ export function fromTemplate(template: string): BlockRender {
         </React.Fragment>
     }
 }
-
-export const Basic: LanguageRender = {
-    "statements": function (block: BlockProps) {
-        const ans: JSX.Element[] = [];
-        for (let i = 0; i < Object.keys(block).length; i++) {
-            ans.push(<div>{block.children[i.toString()]}</div>);
-        }
-        return <div>{ans}</div>;
-    }
-}
