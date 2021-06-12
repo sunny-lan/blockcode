@@ -1,6 +1,6 @@
 import * as React from "react";
-import {Block, ILiveBlock, Language, Live} from "./Code";
-import {GeneralBlockRender, LanguageRender, makeRenderer, BlockContext, UpdateableBlock} from "./ReactCodeRender";
+import {Block, Language} from "./Code";
+import {GeneralBlockRender, LanguageRender, makeRenderer, BlockContext, EditorContext} from "./ReactCodeRender";
 
 export interface EditorProps {
     language: Language,
@@ -13,91 +13,80 @@ export interface EditorProps {
      * @param block the new root block
      */
     onChange(block: Block): void,
+
+    selected?: Block,
+
+    onSelected(selected?: Block): void,
+
+    suggestions: Block[]
 }
 
 
 export default class Editor extends React.Component<EditorProps, {
-    curLive: ILiveBlock,
-    selected?: UpdateableBlock
-}> {
+
     languageRender: GeneralBlockRender
+}> {
 
     constructor(props: EditorProps) {
         super(props);
 
-        this.languageRender = makeRenderer(props.languageRender)
-        this.state = {curLive: Live.makeLive(props.content)};
+        this.state = {languageRender: makeRenderer(props.languageRender)};
     }
 
     componentDidUpdate(prevProps: EditorProps) {
         //update language renderer
         if (prevProps.languageRender !== this.props.languageRender) {
-            this.languageRender = makeRenderer(this.props.languageRender)
-        }
-
-        if(this.props.content!==prevProps.content) {
             this.setState({
                 ...this.state,
-                curLive: Live.makeLive(this.props.content, this.state.curLive)
+                languageRender: makeRenderer(this.props.languageRender)
             })
         }
+
     }
 
-    onSelect(selected?: UpdateableBlock) {
-        this.setState({...this.state, selected});
+    onSelect(selected?: Block) {
+        this.props.onSelected(selected)
     }
+
 
     render() {
         let suggestions;
-        const selected= this.state.selected?.block;
-        const selectedParent = selected?.parent;
-        if (selectedParent) {
-            const childName = Object.keys(selectedParent.children)
-                .find(name => selectedParent.children[name] === selected);
-            if (!childName) {
-                console.error(selected, selectedParent)
-                throw new Error(`Invalid child: ${childName} of ${JSON.stringify(selectedParent.block)}!`)
-            }
-
+        if (this.props.suggestions)
             suggestions = <div>
                 Suggestions:
                 <ul>
-                {this.props.language.allowedChildren(
-                    selectedParent,
-                    childName
-                )
-                    .map(suggestion => {
-                        const block= Live.makeLive(suggestion)
+                    {this.props.suggestions.map(suggestion => {
+                        const block = suggestion;
 
                         return <li key={suggestion.type}>
-                            <button onClick={()=>{
-                                this.state.selected?.updateState(block)
-
+                            <button onClick={() => {
+                                this.props.onSelected(block)
                             }}>{suggestion.type}</button>
-                            {this.languageRender({
+                            {this.state.languageRender({
                                 root: block,
-                                onChange(){throw new Error('Did not expect onchange to be called for suggestion')}
+                                onChange() {
+                                    throw new Error('Did not expect onchange to be called for suggestion')
+                                }
                             })}
                         </li>
-                    })
-
-                }</ul>
+                    })}
+                </ul>
             </div>
-        }
 
-        return <div>
-            <div><BlockContext.Provider value={{
-                onSelect: this.onSelect.bind(this),
-                selected: this.state.selected?.block,
+        return <BlockContext.Provider value={{
+            RenderUnknown: this.state.languageRender,
+        }}>
+            <EditorContext.Provider value={{
+                onSelect: this.props.onSelected,
+                selected: this.props.selected,
             }}>
-                {this.languageRender({
-                    root: this.state.curLive,
-                    onChange:(newRoot)=>{
-                        this.props.onChange(newRoot.block)
-                    }
+
+                {this.state.languageRender({
+                    root: this.props.content,
+                    onChange: this.props.onChange
                 })}
-            </BlockContext.Provider></div>
+            </EditorContext.Provider>
             {suggestions}
-        </div>
+        </BlockContext.Provider>
     }
 }

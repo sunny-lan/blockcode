@@ -1,4 +1,4 @@
-import {Block} from "~core/Code";
+import {Block} from "~/core/Code";
 
 export interface LiveBlock2 {
     readonly parent?: LiveBlock2

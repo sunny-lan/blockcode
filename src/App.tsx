@@ -1,7 +1,7 @@
 import * as React from "react";
-import {ProceduralLang, ProceduralRender} from "./lang/Procedural";
-import Editor from "./core/Editor";
-import {Block} from "./core/Code";
+import {ProceduralLang, ProceduralRender} from "~/lang/Procedural";
+import Editor from "~/core/Editor";
+import {Block} from "~/core/Code";
 
 export default class App extends React.Component<any, {
     root: Block
@@ -24,6 +24,9 @@ export default class App extends React.Component<any, {
 
 
         return <Editor
+            onSelected={x=>{}}
+            suggestions={[]}
+
             language={ProceduralLang}
             languageRender={ProceduralRender}
             content={this.state.root}

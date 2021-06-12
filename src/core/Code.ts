@@ -7,6 +7,7 @@ export interface Block {
     type?: BlockType,
     children?: BlockChildren,
     data?: any,
+    isArray?:boolean,
 }
 
 type  LiveBlockChildren = { [name: string]: ILiveBlock };
