@@ -79,12 +79,12 @@ export default class Editor extends React.Component<EditorProps, {
                 this.replaceSelection(suggestion)
             }}>{suggestion.type}</button>
 
-            {this.state.languageRender({
+            <pre>{this.state.languageRender({
                 root: suggestion,
                 onChange() {
                     throw new Error('Did not expect onchange to be called for suggestion')
                 }
-            })}
+            })}</pre>
         </li>
     }
 
@@ -104,11 +104,10 @@ export default class Editor extends React.Component<EditorProps, {
                 onSelect: this.onSelect.bind(this),
                 selected: arrayLast(this.state.selected),
             }}>
-
-                {this.state.languageRender({
+                <pre>{this.state.languageRender({
                     root: this.props.content,
                     onChange: this.props.onChange
-                })}
+                })}</pre>
             </EditorContext.Provider>
             {suggestions}
         </BlockContext.Provider>

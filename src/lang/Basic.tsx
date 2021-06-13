@@ -32,11 +32,15 @@ export function ArrayBlock(props: ArrayBlockProps) {
             background:'none',
             border:'none'
         };
+
         return <EditorContext.Consumer>{ctx => {
-            return <button
+            if(!ctx)style.color='gray';
+
+            return <a
                 style={style}
 
                 onClick={() => {
+                    if(!ctx)return;
                     props.onChange(setChild(
                         child,
                         len.toString(),
@@ -44,9 +48,8 @@ export function ArrayBlock(props: ArrayBlockProps) {
                     ))
                 }}
 
-                disabled={!ctx}
 
-            >[+]</button>
+            >[+]</a>
         }}</EditorContext.Consumer>
     }
 
@@ -92,7 +95,7 @@ export function fromTemplate(template: string): BlockRender {
 
                         const separator = <>{parsed.params.separator}</>;
                         res = <span style={{
-                            display: 'flex',
+                            display: ('horizontal' in parsed.params) ?'flex-inline':'flex',
                             flexDirection: ('horizontal' in parsed.params) ? 'row' : 'column',
                             alignItems: parsed.params['align'] ?? 'flex-start',
                             marginLeft: ('indent' in parsed.params) ? '10px' : '0'

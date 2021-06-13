@@ -134,7 +134,7 @@ export function parenExpression(Wrapped: BlockRender): BlockRender {
 }
 
 export const ProceduralRender: LanguageRender = {
-    codeblock: fromTemplate("\\{${statements|array,indent}\\}"),
+    codeblock: fromTemplate("\\{${statements|array,indent,separator:\n}\\}"),
     varDecl: fromTemplate("tmp_vardecl"),
     nameDef: fromTemplate("tmp_nameDef"),
     functiondef: fromTemplate(

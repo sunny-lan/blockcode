@@ -93,20 +93,22 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
                 {context => {
                     const style: React.CSSProperties = {
                         background:'none',
-                        border:'none'
+                        border:'none',
+                        color:'blue'
                     };
                     if (context?.selected === root) {
                         style.background='blue'
                         style.color='white'
                     }
+                    if(!context)
+                        style.color='gray'
                     const childName = lookupChild2(arrayLast2(path,2), arrayLast2(path,1));
-                    return <button
+                    return <a
                         onClick={() => context && context.onSelect(path)}
                         style={style}
-                        disabled={!context}
                     >
                         {`<${childName}>`}
-                    </button>
+                    </a>
                 }}
             </EditorContext.Consumer>
         }
