@@ -85,7 +85,7 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
 
         const root = props.root
         const block = root;
-        const path=props.path;
+        const path=props.path.concat(root);
 
         if (!block.type) {
             return <EditorContext.Consumer>
@@ -122,15 +122,15 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
                     onChange(newChild){
                         childOnChange(name,newChild)
                     },
-                    path:path.concat(child)
+                    path
                 })}</>
             },
             RenderUnknown:render,
             childOnChange,
             onChange:props.onChange,
             block,
-            path:path
+            path
         })
     }
-    return x=>render({...x,path:[x.root]})
+    return x=>render({...x,path:[]})
 }

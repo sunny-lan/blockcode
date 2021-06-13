@@ -30,7 +30,7 @@ export function ArrayBlock(props: ArrayBlockProps) {
                 ))
             }}
             root={arr[i]}
-            path={props.path.concat(arr[i])}
+            path={props.path}
         />)
     }
     return <>{elems}</>
@@ -55,7 +55,7 @@ export function fromTemplate(template: string): BlockRender {
                         res=<ArrayBlock
                             block={child}
                             onChange={newArr=>props.childOnChange(parsed.name, newArr)}
-                            path={props.path.concat(child)}
+                            path={props.path}
                             RenderUnknown={props.RenderUnknown}
                             RenderChild={props.RenderChild}
                             childOnChange={undefined}
