@@ -15,7 +15,7 @@ enum Types {
 }
 
 
-const blockDefs: BlockDef[] = [
+const defList: BlockDef[] = [
     makeSequenceDef({
         type: 'statements',
         childSpec: {
@@ -42,7 +42,7 @@ const blockDefs: BlockDef[] = [
                 type: Types.boolean,
             },
             code: {
-                tag: Tags.statement
+                types:['codeblock']
             }
         },
         info: {
@@ -72,10 +72,12 @@ const blockDefs: BlockDef[] = [
     }
 ];
 
+const blockDefs: { [name: string]: BlockDef } = {};
+defList.forEach(def => blockDefs[def.type] = def)
 const impl = fromBlockTemplates(blockDefs);
 export const ProceduralLang: LanguageProvider = impl;
 export const ProceduralRender: LanguageRender = {
-    codeblock: fromTemplate("\\{${statements|array,separator:\n}\\}"),
+    codeblock: fromTemplate("\\{${statements|array,indent}\\}"),
     if: fromTemplate("if(${condition})${code}"),
     hello: fromTemplate("print('hi')"),
     comparison: fromTemplate("${lhs}==${rhs}"),

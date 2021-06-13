@@ -74,7 +74,6 @@ export default class Editor extends React.Component<EditorProps, {
     renderSuggestion(suggestion: Block) {
         if (typeof suggestion.type !== 'string')
             throw new Error(`Suggestion type is invalid: ${suggestion.type}`);
-        console.log('render sugg', suggestion)
         return <li key={suggestion.type}>
             <button onClick={() => {
                 this.replaceSelection(suggestion)

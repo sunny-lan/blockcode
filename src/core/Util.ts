@@ -7,7 +7,7 @@ export function arrayLast<T>(arr?:T[]):T|undefined{
     if(!arr)return undefined;
     return arr[arr.length-1];
 }
-export interface Params{[name:string]:string}
+export interface Params{[name:string]:string|undefined}
 export interface TemplateParam{
     name:string,
     params:Params
@@ -18,7 +18,7 @@ export function parseTemplateParam(token: string,defaultParams:Params={}) {
     const params:Params={};
     (split[1]??'').split(',').forEach(param=>{
         const [name,value]=param.split(':') as [string,string?]
-        params[name]=value??defaultParams[name]??''
+        params[name]=value??defaultParams[name]
     })
     return {
         name: split[0],

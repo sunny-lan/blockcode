@@ -1,7 +1,7 @@
 import * as React from "react";
 import {ProceduralLang, ProceduralRender} from "~/lang/Procedural";
 import Editor from "~/core/Editor";
-import {Block} from "~/core/Code";
+import {Block} from "~/core/Block";
 
 export default class App extends React.Component<any, {
     root: Block
@@ -10,11 +10,14 @@ export default class App extends React.Component<any, {
         super(props);
         this.state = {
             root: {
-                type: 'if',
-                children: {
-                    "condition": {},
-                    "code": {}
-                }
+                type:'codeblock',
+                children:{
+                    statements: {
+                        type:'statements',
+                        isArray:true,
+                        children: {}
+                    }
+                },
             }
         };
     }
@@ -25,7 +28,6 @@ export default class App extends React.Component<any, {
 
         return <Editor
             onSelected={x=>{}}
-            suggestions={[]}
 
             language={ProceduralLang}
             languageRender={ProceduralRender}

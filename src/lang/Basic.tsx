@@ -13,6 +13,8 @@ export interface ArrayBlockProps {
     block: Block
     path: Block[]
     Separator?: JSX.Element
+    parentStyle?: React.CSSProperties,
+    childStyle?: React.CSSProperties,
 }
 
 export function ArrayBlock(props: ArrayBlockProps) {
@@ -43,11 +45,9 @@ export function ArrayBlock(props: ArrayBlockProps) {
     }
 
     for (let i = 0; i < len; i++) {
-        if (i > 0) {
-            if (props.Separator)
+        if (i > 0)
+            if(props.Separator)
                 elems.push(props.Separator)
-        }
-
         elems.push(<props.RenderUnknown
             key={i}
             onChange={newElem => {
@@ -62,17 +62,14 @@ export function ArrayBlock(props: ArrayBlockProps) {
         />)
     }
 
-    return <>
-        {elems}
-        <Inserter/>
-    </>
+    return <>{elems}<Inserter/></>
 }
 
 export function fromTemplate(template: string): BlockRender {
     const tokens = parseTemplate(template)
 
 
-    return function (props: BlockProps) {
+    return function (props: BlockProps): JSX.Element {
         function renderToken(token: Token) {
             if (token.isTemplate) {
                 const parsed = parseTemplateParam(token.value);
@@ -82,18 +79,22 @@ export function fromTemplate(template: string): BlockRender {
                 if (parsed.name in children) {
                     const child = children[parsed.name]
                     let res;
-                    console.log(parsed)
                     if ('array' in parsed.params) {
 
-                        const derp = <>{parsed.params.separator}</>;
-                        res = <ArrayBlock
-                            block={child}
-                            onChange={newArr => props.childOnChange(parsed.name, newArr)}
-                            path={props.path}
-                            RenderUnknown={props.RenderUnknown}
-                            Separator={derp}
-                            key={parsed.name}
-                        />
+                        const separator = <>{parsed.params.separator}</>;
+                        res = <div style={{
+                            display: 'flex',
+                            flexDirection: ('horizontal' in parsed.params) ? 'row' : 'column',
+                            alignItems: parsed.params['align'] ?? 'flex-start',
+                            marginLeft: ('indent' in parsed.params) ? '10px' : '0'
+                        }} key={parsed.name}>
+                            <ArrayBlock
+                                block={child}
+                                onChange={newArr => props.childOnChange(parsed.name, newArr)}
+                                path={props.path}
+                                RenderUnknown={props.RenderUnknown}
+                                Separator={separator}/>
+                        </div>
                     } else {
                         res = <props.RenderChild key={parsed.name} name={parsed.name}/>
                     }
@@ -104,10 +105,9 @@ export function fromTemplate(template: string): BlockRender {
             }
             return token.value
         }
-
-        return <>
+        return <span>
             {tokens.map(renderToken)}
-        </>
+        </span>
     }
 }
 
@@ -141,7 +141,6 @@ function checkBlock(blockDef: BlockDef, spec: BlockSpec): boolean {
     if (allowedTypes)
         if (!allowedTypes.includes(blockDef.type))
             return false;
-    console.log('aa', blockDef, spec)
     for (const [name, requirement] of Object.entries(spec)) {
         if (!(name in blockDef.info)) return false;
         if (blockDef.info[name] !== requirement)
@@ -172,19 +171,9 @@ export function makeSequenceDef({childSpec, info, type,}: SequenceDef): BlockDef
     }
 }
 
-export function makeSequenceRenderer(separator: JSX.Element, start?: JSX.Element, end?: JSX.Element): BlockRender {
-    return function (props) {
-        const list: JSX.Element[] = [];
-        const block = props.block;
 
-        return <>{start}{list}{end}</>
-    }
-}
+export function fromBlockTemplates(blockDefs: { [name: string]: BlockDef } ): LanguageProvider {
 
-export function fromBlockTemplates(defs: BlockDef[]): LanguageProvider {
-
-    const blockDefs: { [name: string]: BlockDef } = {};
-    defs.forEach(def => blockDefs[def.type] = def)
 
     function hydrate(def: BlockDef) {
         let children: BlockChildren | undefined;
@@ -207,7 +196,7 @@ export function fromBlockTemplates(defs: BlockDef[]): LanguageProvider {
         }
     }
 
-    const basicTempl: Block[] = defs.map(hydrate);
+    const basicTempl: Block[] = Object.values(blockDefs).map(hydrate);
 
 
     function additionalBlocks(path: Block[], childName: string): Block[] {
@@ -221,7 +210,6 @@ export function fromBlockTemplates(defs: BlockDef[]): LanguageProvider {
             throw new Error('Block expected to have child');
         const spec = def.children;
         const allSuggestions = basicTempl.concat(additionalBlocks(path, childName));
-        console.log(block, childName, allSuggestions, spec)
 
         let a = allSuggestions.filter(suggestion => {
             if (!suggestion.type)
@@ -234,7 +222,6 @@ export function fromBlockTemplates(defs: BlockDef[]): LanguageProvider {
                 return checkBlock(suggestionDef, spec[childName]);
             }
         });
-        console.log('ret ', a)
         return a;
     }
 
