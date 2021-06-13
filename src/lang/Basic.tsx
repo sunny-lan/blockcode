@@ -1,12 +1,17 @@
-import {BlockProps, BlockRender} from "~/core/ReactCodeRender";
+import {BlockProps, BlockRender, EditorContext, InternalBlockRender} from "~/core/ReactCodeRender";
 import {arrayLast, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
 import * as React from "react";
 import {LanguageProvider} from "~core/Lang2";
 import {lookupChild2, setChild} from "~core/TreeUtils";
 import {Block, BlockChildren, BlockType} from "~core/Block";
 
-export interface ArrayBlockProps extends BlockProps {
+export interface ArrayBlockProps {
+    RenderUnknown: InternalBlockRender,
 
+    onChange(newChild: Block): void
+
+    block: Block
+    path: Block[]
     Separator?: JSX.Element
 }
 
@@ -16,9 +21,32 @@ export function ArrayBlock(props: ArrayBlockProps) {
     const elems = [];
     const arr = child.children;
     if (!arr) throw new Error('Expected child to have elements');
-    for (let i = 0; i < Object.keys(arr).length; i++) {
-        if (props.Separator)
-            if (i > 0) elems.push(props.Separator)
+    const len = Object.keys(arr).length;
+    const path = props.path.concat(child)
+
+    function Inserter() {
+        return <EditorContext.Consumer>{ctx => {
+            return <button
+
+                onClick={() => {
+                    props.onChange(setChild(
+                        child,
+                        len.toString(),
+                        {}
+                    ))
+                }}
+
+                disabled={!ctx}
+
+            >+</button>
+        }}</EditorContext.Consumer>
+    }
+
+    for (let i = 0; i < len; i++) {
+        if (i > 0) {
+            if (props.Separator)
+                elems.push(props.Separator)
+        }
 
         elems.push(<props.RenderUnknown
             key={i}
@@ -30,10 +58,14 @@ export function ArrayBlock(props: ArrayBlockProps) {
                 ))
             }}
             root={arr[i]}
-            path={props.path}
+            path={path}
         />)
     }
-    return <>{elems}</>
+
+    return <>
+        {elems}
+        <Inserter/>
+    </>
 }
 
 export function fromTemplate(template: string): BlockRender {
@@ -52,14 +84,15 @@ export function fromTemplate(template: string): BlockRender {
                     let res;
                     console.log(parsed)
                     if ('array' in parsed.params) {
-                        res=<ArrayBlock
+
+                        const derp = <>{parsed.params.separator}</>;
+                        res = <ArrayBlock
                             block={child}
-                            onChange={newArr=>props.childOnChange(parsed.name, newArr)}
+                            onChange={newArr => props.childOnChange(parsed.name, newArr)}
                             path={props.path}
                             RenderUnknown={props.RenderUnknown}
-                            RenderChild={props.RenderChild}
-                            childOnChange={undefined}
-                            Separator={parsed.params.separator}
+                            Separator={derp}
+                            key={parsed.name}
                         />
                     } else {
                         res = <props.RenderChild key={parsed.name} name={parsed.name}/>
