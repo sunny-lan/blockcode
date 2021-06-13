@@ -1,36 +1,29 @@
-import {BlockContext, BlockProps, BlockRender, LanguageRender, withBlockCtx} from "~/core/ReactCodeRender";
+import {BlockProps, BlockRender} from "~/core/ReactCodeRender";
 import {parseTemplate, parseTemplateParam} from "~/core/Util";
 import * as React from "react";
-import {Block, BlockChildren, BlockType, ILiveBlock} from "~/core/Code";
+import {Block, BlockChildren, BlockType} from "~/core/Code";
+import {ILiveBlock} from "~core/DocumentUtils";
 
 export function fromTemplate(template: string): BlockRender {
     const tokens = parseTemplate(template)
 
     return function (props: BlockProps) {
-        const block = props.block;
         const ans1: (string | JSX.Element)[] = tokens.map(token => {
             if (token.isTemplate) {
-                if (!block.children)
-                    throw new Error("Block missing children");
                 const parsed = parseTemplateParam(token.value);
-                if (parsed.name in block.children) {
-                    const child = block.children[parsed.name];
-                    let res = withBlockCtx(ctx=>ctx.RenderUnknown({
-                        root: child,
-                        onChange: x => props.childOnChange(parsed.name, x)
-                    }))
+                if (parsed.name in props.children) {
+                    let res = props.children[parsed.name];
                     if ('inline' in parsed.params)
                         res = <span>{res}</span>
-
-                    return <React.Fragment key={parsed.name}>{ res}</React.Fragment>;
+                    return res;
                 } else
-                    throw new Error(`Missing child '${parsed.name}' in block '${block.type}'`);
+                    throw new Error(`Template: Missing child '${parsed.name}' in block '${props.block.type}'`);
             }
             return token.value
         });
-        return <React.Fragment>
+        return <>
             {ans1}
-        </React.Fragment>
+        </>
     }
 }
 
@@ -75,10 +68,9 @@ export interface SequenceDef {
     type: BlockType,
     info: BlockSpec,
     childSpec: BlockSpec,
-    separator?: JSX.Element
 }
 
-export function makeSequenceDef({childSpec, info, type, separator}: SequenceDef): BlockDef {
+export function makeSequenceDef({childSpec, info, type,}: SequenceDef): BlockDef {
 
     return {
         type,
@@ -91,6 +83,15 @@ export function makeSequenceDef({childSpec, info, type, separator}: SequenceDef)
         info,
         isArray: true,
 
+    }
+}
+
+export function makeSequenceRenderer(separator:JSX.Element,start?:JSX.Element,end?:JSX.Element):BlockRender {
+    return function (props) {
+        const list:JSX.Element[]=[];
+        const block=props.block;
+
+        return <>{start}{list}{end}</>
     }
 }
 

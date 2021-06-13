@@ -1,21 +1,39 @@
-import {Block, BlockType} from "~/core/Code";
+import {Block} from "~/core/Code";
 import * as React from "react";
+import {setChild} from "~core/TreeUtils";
+
+export interface TooltipProps {
+
+}
 
 export interface BlockContextType {
-    RenderUnknown: GeneralBlockRender
+    //RenderUnknown: GeneralBlockRender
+
+    //Tooltip(props: TooltipProps): JSX.Element;
+
 }
+
+export interface EditableProps {
+    edit(newValue: Block): void
+}
+
+export type Editable = (props: EditableProps) => JSX.Element;
+
 export interface EditorContextType {
-    onSelect(value: Block): void,
+    onSelect(path: Block[]): void
 
-    selected?: Block,
+    selected?: Block
 
+    
 }
-export function withBlockCtx(fn:(ctx:BlockContextType)=>JSX.Element) {
+
+export function withBlockCtx(fn: (ctx: BlockContextType) => JSX.Element) {
     return <BlockContext.Consumer>{ctx => {
         if (!ctx) throw new Error("Cannot use block outside of blockcontext!!");
         return fn(ctx)
     }}</BlockContext.Consumer>;
 }
+
 export const BlockContext = React.createContext<BlockContextType | undefined>(undefined);
 export const EditorContext = React.createContext<EditorContextType | undefined>(undefined);
 
@@ -23,12 +41,19 @@ export interface BlockProps {
     block: Block
     onChange: (newRoot: Block) => void
 
+    children:{[name:string]:JSX.Element}
+
     /**
      * utility method
      * @param name
      * @param newChild
      */
-    childOnChange(name:string ,newChild:Block):void
+    childOnChange(name: string, newChild: Block): void
+
+    /**
+     * Includes this.block as the last element
+     */
+    path:Block[]
 }
 
 export interface BlockRender {
@@ -38,22 +63,29 @@ export interface BlockRender {
 export interface LanguageRender {
     [blockType: string]: BlockRender
 }
-
+interface InternalRenderProps extends RenderProps{
+    /**
+     * Includes this.root as last elem. Defaults to [this.root]
+     */
+    path?:Block[]
+}
 export interface RenderProps {
-    root: Block ,
+    root: Block,
     onChange: (newRoot: Block) => void,
+
 }
 
 
 export type GeneralBlockRender = (props: RenderProps) => JSX.Element;
 
 export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
-    return function render(props: RenderProps): JSX.Element {
+    return function render(props: InternalRenderProps): JSX.Element {
+
         const root = props.root
         const block = root;
+        const path=props.path??[root];
 
         if (!block.type) {
-
             return <EditorContext.Consumer>
                 {context => {
                     const style: any = {};
@@ -61,7 +93,7 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
                         style['background'] = 'blue'
                     }
                     return <button
-                        onClick={() => context && context.onSelect(block)}
+                        onClick={() => context && context.onSelect(path)}
                         style={style}
                         disabled={!context}
                     >
@@ -74,20 +106,31 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
         if (!(block.type in renderer))
             throw new Error(`Invalid component to render: ${block.type}`);
 
+        function childOnChange(name:string,newChild:Block){
+            props.onChange(setChild(block,name,newChild))
+        }
+
+        const children: { [name: string]: JSX.Element } = {};
+        if (root.children) {
+
+            for (const [name, child] of Object.entries(root.children)) {
+                children[name] = (<React.Fragment key={name}>{render({
+                    root: child,
+                    onChange(newChild){
+                        childOnChange(name,newChild)
+                    },
+                    path:path.concat(child)
+                })}</React.Fragment>)
+            }
+        }
 
         const blockRenderer = renderer[block.type];
         return blockRenderer({
-            block,
+            children,
+            childOnChange,
             onChange:props.onChange,
-            childOnChange(name: string, newChild: Block) {
-                props.onChange({
-                    ...block,
-                    children:{
-                        ...block.children,
-                        [name]:newChild
-                    }
-                })
-            }
+            block,
+            path:path
         })
     }
 }

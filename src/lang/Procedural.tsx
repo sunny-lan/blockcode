@@ -20,7 +20,6 @@ const blockDefs: BlockDef[] = [
         childSpec:{
             tag:Tags.statement,
         },
-        separator:<br/>,
         info:{
             tag:Tags.statement,
         }

@@ -1,6 +1,8 @@
 import * as React from "react";
 import {Block, Language} from "./Code";
-import {GeneralBlockRender, LanguageRender, makeRenderer, BlockContext, EditorContext} from "./ReactCodeRender";
+import {BlockContext, EditorContext, GeneralBlockRender, LanguageRender, makeRenderer} from "./ReactCodeRender";
+import {arrayLast} from "core/Util";
+import {updateNode} from "core/TreeUtils";
 
 export interface EditorProps {
     language: Language,
@@ -14,9 +16,8 @@ export interface EditorProps {
      */
     onChange(block: Block): void,
 
-    selected?: Block,
 
-    onSelected(selected?: Block): void,
+    onSelected(selected?: Block[]): void,
 
     suggestions: Block[]
 }
@@ -24,6 +25,7 @@ export interface EditorProps {
 
 export default class Editor extends React.Component<EditorProps, {
 
+    selected?: Block[],
     languageRender: GeneralBlockRender
 }> {
 
@@ -44,10 +46,41 @@ export default class Editor extends React.Component<EditorProps, {
 
     }
 
-    onSelect(selected?: Block) {
-        this.props.onSelected(selected)
+    onSelect(selected?: Block[]) {
+        this.setState({
+            ...this.state,
+            selected,
+        })
     }
 
+    replaceSelection(newVal: Block) {
+        if (!this.state.selected)
+            throw new Error('No block selected to update');
+
+        this.props.onChange(updateNode(
+            this.props.content,
+            this.state.selected,
+            newVal,
+        ))
+    }
+
+    renderSuggestion(suggestion: Block) {
+        if (typeof suggestion.type !== 'string')
+            throw new Error(`Suggestion type is invalid: ${suggestion.type}`);
+
+        return <li key={suggestion.type}>
+            <button onClick={() => {
+                this.replaceSelection(suggestion)
+            }}>{suggestion.type}</button>
+
+            {this.state.languageRender({
+                root: suggestion,
+                onChange() {
+                    throw new Error('Did not expect onchange to be called for suggestion')
+                }
+            })}
+        </li>
+    }
 
     render() {
         let suggestions;
@@ -55,30 +88,15 @@ export default class Editor extends React.Component<EditorProps, {
             suggestions = <div>
                 Suggestions:
                 <ul>
-                    {this.props.suggestions.map(suggestion => {
-                        const block = suggestion;
-
-                        return <li key={suggestion.type}>
-                            <button onClick={() => {
-                                this.props.onSelected(block)
-                            }}>{suggestion.type}</button>
-                            {this.state.languageRender({
-                                root: block,
-                                onChange() {
-                                    throw new Error('Did not expect onchange to be called for suggestion')
-                                }
-                            })}
-                        </li>
-                    })}
+                    {this.props.suggestions.map(this.renderSuggestion.bind(this))}
                 </ul>
             </div>
 
-        return <BlockContext.Provider value={{
-            RenderUnknown: this.state.languageRender,
-        }}>
+
+        return <BlockContext.Provider value={{}}>
             <EditorContext.Provider value={{
-                onSelect: this.props.onSelected,
-                selected: this.props.selected,
+                onSelect: this.onSelect.bind(this),
+                selected: arrayLast(this.state.selected),
             }}>
 
                 {this.state.languageRender({

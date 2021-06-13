@@ -3,6 +3,11 @@ export type Token = {
     value: string,
 }
 
+export function arrayLast<T>(arr?:T[]):T|undefined{
+    if(!arr)return undefined;
+    return arr[arr.length-1];
+}
+
 export function parseTemplateParam(token: string) {
     const split = token.split('|')
     return {
