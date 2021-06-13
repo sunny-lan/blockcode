@@ -7,12 +7,22 @@ export function arrayLast<T>(arr?:T[]):T|undefined{
     if(!arr)return undefined;
     return arr[arr.length-1];
 }
+export interface Params{[name:string]:string}
+export interface TemplateParam{
+    name:string,
+    params:Params
+}
 
-export function parseTemplateParam(token: string) {
+export function parseTemplateParam(token: string,defaultParams:Params={}) {
     const split = token.split('|')
+    const params:Params={};
+    (split[1]??'').split(',').forEach(param=>{
+        const [name,value]=param.split(':') as [string,string?]
+        params[name]=value??defaultParams[name]??''
+    })
     return {
         name: split[0],
-        params: (token[1]??'').split(',')
+        params
     }
 }
 

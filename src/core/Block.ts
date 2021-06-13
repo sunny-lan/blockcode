@@ -1,4 +1,3 @@
-import {Node} from "~core/TreeUtils";
 
 export type BlockType = string;
 export type BlockChildren={ [name: string]: Block };

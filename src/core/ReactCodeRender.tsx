@@ -1,4 +1,4 @@
-import {Block} from "~/core/Code";
+import {Block} from "~core/Block";
 import * as React from "react";
 import {setChild} from "~core/TreeUtils";
 
@@ -41,7 +41,8 @@ export interface BlockProps {
     block: Block
     onChange: (newRoot: Block) => void
 
-    children:{[name:string]:JSX.Element}
+    RenderUnknown: InternalBlockRender
+    RenderChild(props:{name:string}):JSX.Element
 
     /**
      * utility method
@@ -67,7 +68,7 @@ interface InternalRenderProps extends RenderProps{
     /**
      * Includes this.root as last elem. Defaults to [this.root]
      */
-    path?:Block[]
+    path:Block[]
 }
 export interface RenderProps {
     root: Block,
@@ -77,13 +78,14 @@ export interface RenderProps {
 
 
 export type GeneralBlockRender = (props: RenderProps) => JSX.Element;
+export type InternalBlockRender = (props: InternalRenderProps) => JSX.Element;
 
 export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
-    return function render(props: InternalRenderProps): JSX.Element {
+    function render(props: InternalRenderProps): JSX.Element {
 
         const root = props.root
         const block = root;
-        const path=props.path??[root];
+        const path=props.path;
 
         if (!block.type) {
             return <EditorContext.Consumer>
@@ -110,27 +112,25 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
             props.onChange(setChild(block,name,newChild))
         }
 
-        const children: { [name: string]: JSX.Element } = {};
-        if (root.children) {
-
-            for (const [name, child] of Object.entries(root.children)) {
-                children[name] = (<React.Fragment key={name}>{render({
+        const blockRenderer = renderer[block.type];
+        return blockRenderer({
+            RenderChild( { name }): JSX.Element {
+                if(!block.children)throw new Error('Block has no children!');
+                const child=block.children[name]
+                return < >{render({
                     root: child,
                     onChange(newChild){
                         childOnChange(name,newChild)
                     },
                     path:path.concat(child)
-                })}</React.Fragment>)
-            }
-        }
-
-        const blockRenderer = renderer[block.type];
-        return blockRenderer({
-            children,
+                })}</>
+            },
+            RenderUnknown:render,
             childOnChange,
             onChange:props.onChange,
             block,
             path:path
         })
     }
+    return x=>render({...x,path:[x.root]})
 }

@@ -1,4 +1,4 @@
-import {Block} from "~/core/Code";
+import {Block} from "~core/Block";
 
 export interface LanguageProvider{
     /**

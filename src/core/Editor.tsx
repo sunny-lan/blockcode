@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Block} from "./Code";
+import {Block} from "./Block";
 import {BlockContext, EditorContext, GeneralBlockRender, LanguageRender, makeRenderer} from "./ReactCodeRender";
 import {arrayLast} from "core/Util";
 import {updateNode} from "core/TreeUtils";
@@ -74,7 +74,7 @@ export default class Editor extends React.Component<EditorProps, {
     renderSuggestion(suggestion: Block) {
         if (typeof suggestion.type !== 'string')
             throw new Error(`Suggestion type is invalid: ${suggestion.type}`);
-
+        console.log('render sugg', suggestion)
         return <li key={suggestion.type}>
             <button onClick={() => {
                 this.replaceSelection(suggestion)
