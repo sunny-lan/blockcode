@@ -1,11 +1,12 @@
 import * as React from "react";
-import {Block, Language} from "./Code";
+import {Block} from "./Code";
 import {BlockContext, EditorContext, GeneralBlockRender, LanguageRender, makeRenderer} from "./ReactCodeRender";
 import {arrayLast} from "core/Util";
 import {updateNode} from "core/TreeUtils";
+import {LanguageProvider} from "core/Lang2";
 
 export interface EditorProps {
-    language: Language,
+    language: LanguageProvider,
     languageRender: LanguageRender
 
     content: Block,
@@ -19,11 +20,11 @@ export interface EditorProps {
 
     onSelected(selected?: Block[]): void,
 
-    suggestions: Block[]
 }
 
 
 export default class Editor extends React.Component<EditorProps, {
+    suggestions?: Block[]
 
     selected?: Block[],
     languageRender: GeneralBlockRender
@@ -32,7 +33,10 @@ export default class Editor extends React.Component<EditorProps, {
     constructor(props: EditorProps) {
         super(props);
 
-        this.state = {languageRender: makeRenderer(props.languageRender)};
+        this.state = {
+            languageRender: makeRenderer(props.languageRender),
+
+        };
     }
 
     componentDidUpdate(prevProps: EditorProps) {
@@ -50,12 +54,15 @@ export default class Editor extends React.Component<EditorProps, {
         this.setState({
             ...this.state,
             selected,
+            suggestions: selected && this.props.language.suggest(selected)
         })
     }
 
     replaceSelection(newVal: Block) {
         if (!this.state.selected)
             throw new Error('No block selected to update');
+
+        this.onSelect(undefined)
 
         this.props.onChange(updateNode(
             this.props.content,
@@ -84,11 +91,11 @@ export default class Editor extends React.Component<EditorProps, {
 
     render() {
         let suggestions;
-        if (this.props.suggestions)
+        if (this.state.suggestions)
             suggestions = <div>
                 Suggestions:
                 <ul>
-                    {this.props.suggestions.map(this.renderSuggestion.bind(this))}
+                    {this.state.suggestions.map(this.renderSuggestion.bind(this))}
                 </ul>
             </div>
 

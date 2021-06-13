@@ -1,7 +1,8 @@
 import {LanguageRender} from "~/core/ReactCodeRender";
 import * as React from "react";
 import {BlockDef, fromBlockTemplates, fromTemplate, makeSequenceDef} from "~/lang/Basic";
-import {Language} from "~/core/Code";
+
+import {LanguageProvider} from "~core/Lang2";
 
 enum Tags {
     expression = 'expression',
@@ -63,11 +64,11 @@ const blockDefs: BlockDef[] = [
 ];
 
 const impl = fromBlockTemplates(blockDefs);
-export const ProceduralLang: Language = impl;
+export const ProceduralLang: LanguageProvider = impl;
 export const ProceduralRender: LanguageRender = {
-
+    codeblock:fromTemplate(""),
     if: fromTemplate("if(${condition})${code}"),
-    hi: fromTemplate("print('hi')"),
+    hello: fromTemplate("print('hi')"),
     comparison: fromTemplate("${lhs}==${rhs}"),
 }
 

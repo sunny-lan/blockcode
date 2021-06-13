@@ -1,8 +1,10 @@
 import {BlockProps, BlockRender} from "~/core/ReactCodeRender";
-import {parseTemplate, parseTemplateParam} from "~/core/Util";
+import {arrayLast, parseTemplate, parseTemplateParam} from "~/core/Util";
 import * as React from "react";
 import {Block, BlockChildren, BlockType} from "~/core/Code";
 import {ILiveBlock} from "~core/DocumentUtils";
+import {LanguageProvider} from "~core/Lang2";
+import {lookupChild, lookupChild2} from "~core/TreeUtils";
 
 export function fromTemplate(template: string): BlockRender {
     const tokens = parseTemplate(template)
@@ -86,16 +88,16 @@ export function makeSequenceDef({childSpec, info, type,}: SequenceDef): BlockDef
     }
 }
 
-export function makeSequenceRenderer(separator:JSX.Element,start?:JSX.Element,end?:JSX.Element):BlockRender {
+export function makeSequenceRenderer(separator: JSX.Element, start?: JSX.Element, end?: JSX.Element): BlockRender {
     return function (props) {
-        const list:JSX.Element[]=[];
-        const block=props.block;
+        const list: JSX.Element[] = [];
+        const block = props.block;
 
         return <>{start}{list}{end}</>
     }
 }
 
-export function fromBlockTemplates(defs: BlockDef[]) {
+export function fromBlockTemplates(defs: BlockDef[]): LanguageProvider {
     const blockDefs: { [name: string]: BlockDef } = {};
     const basicTempl: Block[] = defs.map(def => {
         let children: BlockChildren | undefined;
@@ -114,33 +116,40 @@ export function fromBlockTemplates(defs: BlockDef[]) {
     });
 
 
-    function additionalBlocks(block: ILiveBlock, childName: string): Block[] {
+    function additionalBlocks(path: Block[], childName: string): Block[] {
         return []
     }
 
+    function suggestInternal(block: Block, childName: string, path: Block[]): Block[] {
+        if (!block.type) return [];
+        const def = blockDefs[block.type];
+        if (!def.children)
+            throw new Error('Block expected to have child');
+        const spec = def.children;
+        const allSuggestions = basicTempl.concat(additionalBlocks(path, childName));
+
+
+        return allSuggestions.filter(suggestion => {
+            if (!suggestion.type)
+                throw new Error('Proposed block must have a type');
+            const suggestionDef = blockDefs[suggestion.type];
+
+            if (typeof spec === 'function') {
+                return spec(childName, suggestion, suggestionDef);
+            } else {
+                return checkBlock(suggestionDef, spec[childName]);
+            }
+        });
+    }
 
     return {
-        allowedChildren(block: ILiveBlock, childName: string): Block[] {
-
-            if (!block.block.type) return [];
-            const def = blockDefs[block.block.type];
-            if (!def.children)
-                throw new Error('Block expected to have child');
-            const spec = def.children;
-            const allSuggestions = basicTempl.concat(additionalBlocks(block, childName));
-
-
-            return allSuggestions.filter(suggestion => {
-                if (!suggestion.type)
-                    throw new Error('Proposed block must have a type');
-                const suggestionDef = blockDefs[suggestion.type];
-
-                if (typeof spec === 'function') {
-                    return spec(childName, suggestion, suggestionDef);
-                } else {
-                    return checkBlock(suggestionDef, spec[childName]);
-                }
-            });
+        suggest(path: Block[]): Block[] {
+            const block = arrayLast(path);
+            if (!block) throw new Error("tried to suggest on null block");
+            if (path.length - 1 < 0) throw new Error("No parent in block");
+            const parent = path[path.length - 2];
+            return suggestInternal(parent, lookupChild2(parent, block), path)
         }
+
     }
 }

@@ -1,3 +1,5 @@
+import {Node} from "~core/TreeUtils";
+
 export type BlockType = string;
 export type BlockChildren={ [name: string]: Block };
 /**
@@ -11,9 +13,3 @@ export interface Block {
 }
 
 
-
-
-export interface Language {
-
-    allowedChildren(block: Block, childName: string): Block[]
-}

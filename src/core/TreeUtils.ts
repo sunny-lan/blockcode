@@ -1,8 +1,8 @@
-export interface Tree<T> {
-    children?: { [name: string]: Tree<T> }
+export interface Node {
+    children?: { [name: string]: Node }
 }
 
-export function setChild<T>(block: Tree<T>, name: string, newChild: Tree<T>): Tree<T> {
+export function setChild(block: Node, name: string, newChild: Node): Node {
     return {
         ...block,
         children: {
@@ -12,27 +12,32 @@ export function setChild<T>(block: Tree<T>, name: string, newChild: Tree<T>): Tr
     }
 }
 
-export function lookupChild<T>(tree:Tree<T>, child:Tree<T>):string|undefined{
+export function lookupChild(tree:Node, child:Node):string|undefined{
     const children=tree.children;
     if(!children)return undefined;
     return Object.keys(children).find(x=>children[x]==child)
 }
-export function updateNode<T>(tree: Tree<T>, path: T[], newVal: T): Tree<T> {
-    if (path.length == 0)
+export function lookupChild2(tree:Node,child:Node):string{
+    const res=lookupChild(tree, child);
+    if(!res)throw new Error(`Unable to find child ${child} in node ${tree}`);
+    return res;
+}
+export function updateNode(tree: Node, path: Node[], newVal: Node): Node {
+    if(path.length==0)throw new Error('invalid path of length 0')
+
+    if (path.length == 1)
         return newVal;
 
-    const child=lookupChild(tree,path[0]);
-    if (!child)
-        throw new Error(`Invalid path: ${path}`);
+    const child=lookupChild2(tree,path[1]);
 
     return setChild(tree, child, updateNode(
-        path[0],
+        path[1],
         path.slice(1),
         newVal
     ))
 }
 
-export function updateNodeStr<T>(tree: Tree<T>, path: string[], newVal: T): Tree<T> {
+export function updateNodeStr(tree: Node, path: string[], newVal: Node): Node {
     if (path.length == 0)
         return newVal;
 
