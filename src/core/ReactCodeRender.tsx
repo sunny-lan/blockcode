@@ -1,6 +1,7 @@
 import {Block} from "~core/Block";
 import * as React from "react";
-import {setChild} from "~core/TreeUtils";
+import {lookupChild2, setChild} from "~core/TreeUtils";
+import {arrayLast, arrayLast2} from "~core/Util";
 
 export interface TooltipProps {
 
@@ -90,23 +91,28 @@ export function makeRenderer(renderer: LanguageRender): GeneralBlockRender {
         if (!block.type) {
             return <EditorContext.Consumer>
                 {context => {
-                    const style: any = {};
+                    const style: React.CSSProperties = {
+                        background:'none',
+                        border:'none'
+                    };
                     if (context?.selected === root) {
-                        style['background'] = 'blue'
+                        style.background='blue'
+                        style.color='white'
                     }
+                    const childName = lookupChild2(arrayLast2(path,2), arrayLast2(path,1));
                     return <button
                         onClick={() => context && context.onSelect(path)}
                         style={style}
                         disabled={!context}
                     >
-                        empty
+                        {`<${childName}>`}
                     </button>
                 }}
             </EditorContext.Consumer>
         }
 
         if (!(block.type in renderer))
-            throw new Error(`Invalid component to render: ${block.type}`);
+            throw new Error(`No renderer for block: ${block.type}`);
 
         function childOnChange(name:string,newChild:Block){
             props.onChange(setChild(block,name,newChild))

@@ -3,17 +3,21 @@ export type Token = {
     value: string,
 }
 
-export function arrayLast<T>(arr?:T[]):T|undefined{
+export function arrayLast<T>(arr?:T[], offset:number=1):T|undefined{
     if(!arr)return undefined;
-    return arr[arr.length-1];
+    return arr[arr.length-offset];
+}
+export function arrayLast2<T>(arr?:T[], offset:number=1):T{
+    if(!arr)throw new Error(`Array doesn't exist`);
+    return arr[arr.length-offset];
 }
 export interface Params{[name:string]:string|undefined}
 export interface TemplateParam{
     name:string,
     params:Params
 }
-
-export function parseTemplateParam(token: string,defaultParams:Params={}) {
+export interface ParsedParams{ name: any; params: Params }
+export function parseTemplateParam(token: string,defaultParams:Params={}): ParsedParams {
     const split = token.split('|')
     const params:Params={};
     (split[1]??'').split(',').forEach(param=>{

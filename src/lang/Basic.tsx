@@ -1,5 +1,5 @@
 import {BlockProps, BlockRender, EditorContext, InternalBlockRender} from "~/core/ReactCodeRender";
-import {arrayLast, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
+import {arrayLast, ParsedParams, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
 import * as React from "react";
 import {LanguageProvider} from "~core/Lang2";
 import {lookupChild2, setChild} from "~core/TreeUtils";
@@ -19,7 +19,8 @@ export interface ArrayBlockProps {
 
 export function ArrayBlock(props: ArrayBlockProps) {
     const child = props.block;
-    if (!child.isArray) throw new Error(`Expected block to be array`);
+    if (!child.isArray)
+        throw new Error(`Expected block to be array`);
     const elems = [];
     const arr = child.children;
     if (!arr) throw new Error('Expected child to have elements');
@@ -27,8 +28,13 @@ export function ArrayBlock(props: ArrayBlockProps) {
     const path = props.path.concat(child)
 
     function Inserter() {
+        const style: React.CSSProperties = {
+            background:'none',
+            border:'none'
+        };
         return <EditorContext.Consumer>{ctx => {
             return <button
+                style={style}
 
                 onClick={() => {
                     props.onChange(setChild(
@@ -40,7 +46,7 @@ export function ArrayBlock(props: ArrayBlockProps) {
 
                 disabled={!ctx}
 
-            >+</button>
+            >[+]</button>
         }}</EditorContext.Consumer>
     }
 
@@ -66,15 +72,18 @@ export function ArrayBlock(props: ArrayBlockProps) {
 }
 
 export function fromTemplate(template: string): BlockRender {
-    const tokens = parseTemplate(template)
+    const tokens:[Token,ParsedParams?][] = parseTemplate(template).map(token=>{
+        if(token.isTemplate)return [token, parseTemplateParam(token.value)]
+        return  [token]
+    })
 
 
     return function (props: BlockProps): JSX.Element {
-        function renderToken(token: Token) {
+        function renderToken([token,parsed1]:[Token,ParsedParams?]) {
             if (token.isTemplate) {
-                const parsed = parseTemplateParam(token.value);
+                const parsed = parsed1 as ParsedParams
                 const children = props.block.children;
-                if (!children) throw new Error('expected chilren');
+                if (!children) throw new Error('expected children');
 
                 if (parsed.name in children) {
                     const child = children[parsed.name]
@@ -82,7 +91,7 @@ export function fromTemplate(template: string): BlockRender {
                     if ('array' in parsed.params) {
 
                         const separator = <>{parsed.params.separator}</>;
-                        res = <div style={{
+                        res = <span style={{
                             display: 'flex',
                             flexDirection: ('horizontal' in parsed.params) ? 'row' : 'column',
                             alignItems: parsed.params['align'] ?? 'flex-start',
@@ -94,14 +103,15 @@ export function fromTemplate(template: string): BlockRender {
                                 path={props.path}
                                 RenderUnknown={props.RenderUnknown}
                                 Separator={separator}/>
-                        </div>
+                        </span>
                     } else {
                         res = <props.RenderChild key={parsed.name} name={parsed.name}/>
                     }
 
                     return res;
-                } else
+                } else {
                     throw new Error(`Template: Missing child '${parsed.name}' in block '${props.block.type}'`);
+                }
             }
             return token.value
         }
@@ -171,8 +181,10 @@ export function makeSequenceDef({childSpec, info, type,}: SequenceDef): BlockDef
     }
 }
 
+export type BlockDefs={ [name: string]: BlockDef };
 
-export function fromBlockTemplates(blockDefs: { [name: string]: BlockDef } ): LanguageProvider {
+
+export function fromBlockTemplates(blockDefs: BlockDefs) {
 
 
     function hydrate(def: BlockDef) {
@@ -216,7 +228,7 @@ export function fromBlockTemplates(blockDefs: { [name: string]: BlockDef } ): La
                 throw new Error('Proposed block must have a type');
             const suggestionDef = blockDefs[suggestion.type];
 
-            if (typeof spec === 'function') {
+            if (typeof spec=== 'function') {
                 return spec(childName, suggestion, suggestionDef);
             } else {
                 return checkBlock(suggestionDef, spec[childName]);
@@ -226,6 +238,7 @@ export function fromBlockTemplates(blockDefs: { [name: string]: BlockDef } ): La
     }
 
     return {
+        hydrate,
         suggest(path: Block[]): Block[] {
             const block = arrayLast(path);
             if (!block) throw new Error("tried to suggest on null block");

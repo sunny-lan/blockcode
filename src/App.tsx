@@ -1,5 +1,5 @@
 import * as React from "react";
-import {ProceduralLang, ProceduralRender} from "~/lang/Procedural";
+import {ProceduralLang, ProceduralRender,ProceduralBlockDefs} from "~/lang/Procedural";
 import Editor from "~/core/Editor";
 import {Block} from "~/core/Block";
 
@@ -9,16 +9,7 @@ export default class App extends React.Component<any, {
     constructor(props: {}) {
         super(props);
         this.state = {
-            root: {
-                type:'codeblock',
-                children:{
-                    statements: {
-                        type:'statements',
-                        isArray:true,
-                        children: {}
-                    }
-                },
-            }
+            root: ProceduralLang.hydrate(ProceduralBlockDefs.functiondef)
         };
     }
 
