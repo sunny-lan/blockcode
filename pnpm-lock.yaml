@@ -6,11 +6,13 @@ specifiers:
   fuse-box: ^4.0.0
   react: ^16.13.1
   react-dom: ^16.13.1
+  react-intersection-observer-hook: ^2.0.3
   typescript: ^3.8.3
 
 dependencies:
   react: 16.14.0
   react-dom: 16.14.0_react@16.14.0
+  react-intersection-observer-hook: 2.0.3_react@16.14.0
 
 devDependencies:
   '@types/react': 16.14.8
@@ -966,6 +968,14 @@ packages:
       prop-types: 15.7.2
       react: 16.14.0
       scheduler: 0.19.1
+    dev: false
+
+  /react-intersection-observer-hook/2.0.3_react@16.14.0:
+    resolution: {integrity: sha512-6LcrY/oUtZqn7HbwLTgSk43/KdZD5LZJsWUOwQB11aMPi3OkjyDcm2dwAQ1ydlbrSDlL4fHUNXisNt4B470UJg==}
+    peerDependencies:
+      react: '>=16.8.0'
+    dependencies:
+      react: 16.14.0
     dev: false
 
   /react-is/16.13.1:
