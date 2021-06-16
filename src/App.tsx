@@ -33,7 +33,7 @@ export default class App extends React.Component<any, {
         // />
         const HintProvider=this.hintProvider;
         const lst=[]
-        for(let i=0;i<500;i++) {
+        for(let i=0;i<200;i++) {
             lst.push(<span key={i} >[<Hint onSelect={() => alert(`hi ${i}`)}/>]</span>)
 
         }

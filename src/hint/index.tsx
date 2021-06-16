@@ -2,6 +2,7 @@ import * as React from 'react'
 import {useContext, useEffect, useState, useMemo, useCallback} from 'react'
 import {InView} from 'react-intersection-observer';
 import {useDebounce} from 'use-debounce';
+import {compareArray} from "~core/Util";
 
 type Code = string[];
 
@@ -291,6 +292,7 @@ export function Hint(props: HintProps): JSX.Element {
         throw new Error('Hint cannot be used without HintProvider');
     const [id, setID] = useState<string | undefined>();
     const [code, setCode] = useState<Code | undefined>();
+
     const thing = useMemo<HintRef>(() => {
         return {
             onCodeChange(code) {
@@ -303,6 +305,15 @@ export function Hint(props: HintProps): JSX.Element {
         setID(_id = ctx.registerHint(thing));
         return () => ctx.unRegisterHint(_id);
     }, []);
+    useEffect(()=>{
+        if(!code)return;
+        if(code.length===ctx.currentCode.length){
+            if(compareArray(code, ctx.currentCode)) {
+                ctx.clear()
+                props.onSelect()
+            }
+        }
+    },[code, ctx.currentCode]);
     return useMemo(() => {
         if (!id) return <></>;
         //console.log('render hint')
