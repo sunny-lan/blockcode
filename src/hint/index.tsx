@@ -263,6 +263,7 @@ interface HintViewProps {
 function _hintView({currentCode, code}: HintViewProps) {
 
     if (!code) return;
+    if(currentCode.length==0)return code;
 
     if (currentCode.length > code.length) return;
 
