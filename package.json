@@ -11,12 +11,15 @@
   "dependencies": {
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-intersection-observer-hook": "^2.0.3"
+    "react-intersection-observer": "^8.32.0",
+    "react-intersection-observer-hook": "^2.0.3",
+    "react-visibility-sensor": "^5.1.1",
+    "use-debounce": "^6.0.1"
   },
   "devDependencies": {
     "@types/react": "^16.9.34",
     "@types/react-dom": "^16.9.7",
     "fuse-box": "^4.0.0",
-    "typescript": "^3.8.3"
+    "typescript": "^4.3.2"
   }
 }

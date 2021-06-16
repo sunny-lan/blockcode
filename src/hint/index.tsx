@@ -1,10 +1,12 @@
 import * as React from 'react'
 import {useContext, useEffect, useState} from 'react'
-import {useTrackVisibility} from 'react-intersection-observer-hook'
+import {InView} from 'react-intersection-observer';
+import {useDebounce} from 'use-debounce';
 
 type Code = string[];
 
 interface HintRef {
+
     /**
      * Priority determines the length of the code assigned to the hint
      * Any hint with a lower priority will never have a longer code
@@ -22,9 +24,18 @@ interface HintRef {
 }
 
 interface HintContextType {
-    registerHint(settings: HintRef): () => void
+    /**
+     * returns a unique ID for this hint
+     */
+    registerHint(ref: HintRef): string
+
+    unRegisterHint(id: string): void
+
+    setVisible(id: string, visible: boolean, hint: HintRef): void
 
     currentCode: Code
+
+    // codes: { [id: string]: Code }
 
     push(letter: string): void
 
@@ -61,7 +72,7 @@ export function makeHintUtils(alphabet: string[]) {
         for (let i = len - 1; i >= 0; i--) {
             code[i] = alphabet[num % alphabet.length]
             num /= alphabet.length;
-            num=Math.floor(num)
+            num = Math.floor(num)
         }
         return code
     }
@@ -74,17 +85,6 @@ export function makeHintUtils(alphabet: string[]) {
         return num;
     }
 
-    return {
-        numToCode,
-        codeToNum,
-        fastIdxOf,
-
-
-    }
-}
-
-export function makeHintProvider(alphabet: string[]) {
-    const utils = makeHintUtils(alphabet);
 
     function reqLen(count: number): number {
         let res = 1;
@@ -92,12 +92,20 @@ export function makeHintProvider(alphabet: string[]) {
         return res;
     }
 
-    function assignCodes(refs: HintRef[]) {
+    /**
+     * Assigns unique codes to a number of hints, trying best to give minimal length codes
+     * @param refs
+     * @return an array of same length as {refs} which each element is the code assigned to the hint
+     * in the corresponding array index
+     */
+    function assignCodes(refs: HintRef[]): Code[] {
         const maxLength = reqLen(refs.length);
         let remainingCodes = Math.pow(alphabet.length, maxLength);
         let curPrefix = 0, curPrefixLen = 1;
-        let curMultiplier =Math.floor( remainingCodes / alphabet.length);
+        let curMultiplier = Math.floor(remainingCodes / alphabet.length);
         let refsLeft = refs.length;
+        let idx = 0;
+        const res = new Array(refs.length)
         for (const ref of refs) {
 
             //not enough codes left to continue at current length of prefix
@@ -105,48 +113,99 @@ export function makeHintProvider(alphabet: string[]) {
                 curPrefix *= alphabet.length;
                 curPrefixLen++;
                 curMultiplier /= alphabet.length;
-                curMultiplier=Math.floor(curMultiplier)
+                curMultiplier = Math.floor(curMultiplier)
             }
 
-            const code = utils.numToCode(curPrefix, curPrefixLen);
-            ref.onCodeChange(code);
+            res[idx] = numToCode(curPrefix, curPrefixLen);
             curPrefix++;
 
             refsLeft--;
             remainingCodes -= curMultiplier;
+            idx++;
         }
+        return res
     }
 
-    const refs: HintRef[] = [];
+    return {
+        numToCode,
+        codeToNum,
+        fastIdxOf,
+        reqLen,
+        assignCodes,
 
+    }
+}
+
+export function makeHintProvider(alphabet: string[]) {
+    const utils = makeHintUtils(alphabet);
+
+    let uniqId = 1;
     return function HintProvider(props: HintProviderProps): JSX.Element {
-        const [currentCode, setCode] = useState<Code>([]);
+        const [currentCode, setCurrentCode] = useState<Code>([]);
+        const [visibleDict, setVisibleDict] = useState<{ [id: string]: HintRef }>({});
+        //const [idMap, setIdMap] = useState<{ [id: string]: HintRef }>({});
+        const [debounceVisible] = useDebounce(visibleDict, 300);
+        //const [codes, setCodes] = useState<{ [id: string]: Code }>({});
 
-        function onRefsChange() {
-            assignCodes(refs)
-        }
+        //console.log('render HintProvider')
 
-        const ctx: HintContextType = {
-            registerHint(ref: HintRef): () => void {
-                refs.push(ref)
-                onRefsChange()
-                return function free() {
-                    refs.splice(refs.indexOf(ref))
-                    onRefsChange()
-                };
-            },
-            currentCode,
-            push(letter: string) {
-                setCode(currentCode.concat(letter))
-            },
-            clear() {
-                setCode([])
+        useEffect(() => {
+            const keys = Object.values(debounceVisible);
+            const codeArr = utils.assignCodes(keys)
+            //console.log('recalc codeArr')
+            //const newCodes: { [id: string]: Code } = {}
+            for (let i = 0; i < keys.length; i++) {
+                // newCodes[keys[i]] = codeArr[i]
+                keys[i].onCodeChange(codeArr[i])
             }
-        };
 
-        return <HintContext.Provider value={ctx}>
-            {props.children}
-        </HintContext.Provider>
+        }, [debounceVisible])
+
+        return React.useMemo(() => {
+            const ctx: HintContextType = {
+                registerHint(ref: HintRef): string {
+                    const id = (uniqId++).toString()
+                    // setIdMap(idMap => {
+                    //     return {...idMap, [id]: ref}
+                    // })
+                    return id;
+                },
+                unRegisterHint(id: string): void {
+                    // setIdMap(idMap => {
+                    //     const {[id]: _, ...newIdMap} = idMap;
+                    //     return newIdMap;
+                    // })
+                },
+                setVisible(id: string, visible: boolean, thing: HintRef) {
+                    //console.log('visibility change', id, visible)
+                    if (!visible) {
+
+                        setVisibleDict(visibleDict => {
+                            const {[id]: _, ...newDict} = visibleDict;
+                            return newDict;
+                        });
+                    } else {
+                        setVisibleDict(visibleDict => {
+                            return {...visibleDict, [id]: thing}
+                        })
+                    }
+                },
+
+                currentCode,
+                // codes,
+
+                push(letter: string) {
+                    setCurrentCode(currentCode => currentCode.concat(letter))
+                },
+                clear() {
+                    setCurrentCode([])
+                }
+            }
+            return <HintContext.Provider value={ctx}>
+                {props.children}
+            </HintContext.Provider>
+        }, [currentCode]);
+
     }
 }
 
@@ -157,11 +216,12 @@ export interface HintProps {
 
 interface HintViewProps {
     currentCode: Code
-    code: Code
+    code?: Code
 }
 
-function HintView({currentCode, code}: HintViewProps): JSX.Element | undefined {
+function _hintView({currentCode, code}: HintViewProps) {
 
+    if (!code) return;
     if (currentCode.length >= code.length) return;
 
     for (let prefixMatch = 0; prefixMatch < currentCode.length; prefixMatch++) {
@@ -169,34 +229,47 @@ function HintView({currentCode, code}: HintViewProps): JSX.Element | undefined {
             return;
         }
     }
-    return <>{code.map((letter, idx) => (
+    return code.map((letter, idx) => (
         <span key={idx} style={{
             color: idx < currentCode.length ? 'red' : 'black'
         }}>{letter}</span>
-    ))}</>
+    ))
 }
+
+function HintView(props: HintViewProps): JSX.Element {
+
+    return <span>{_hintView(props)}</span>
+}
+
 
 export function Hint(props: HintProps): JSX.Element {
     const ctx = useContext(HintContext);
     if (!ctx)
         throw new Error('Hint cannot be used without HintProvider');
-
-    const [ref, {isVisible}] = useTrackVisibility();
+    const [id, setID] = useState<string | undefined>();
     const [code, setCode] = useState<Code | undefined>();
-
-    useEffect(() => {
-        if (isVisible) {
-            return ctx.registerHint({
-                onCodeChange(code: Code) {
-                    setCode(code)
-                }
-            });
+    const thing = React.useMemo<HintRef>(() => {
+        return {
+            onCodeChange(code) {
+                setCode(code)
+            }
         }
-    }, [isVisible, ctx, setCode]);
+    }, [])
+    useEffect(() => {
+        let _id: string;
+        setID(_id = ctx.registerHint(thing));
+        return () => ctx.unRegisterHint(_id);
+    }, []);
+    return React.useMemo(() => {
+        if (!id) return <></>;
+        //console.log('render hint')
+        return <InView as="span" onChange={visible => {
+            ctx.setVisible(id, visible, thing)
+        }}>{_hintView({
+            code,
+            currentCode: ctx.currentCode
+        })}</InView>
+    }, [id, code, ctx.currentCode]);
 
 
-    return <span ref={ref}>{code && HintView({
-        currentCode: ctx.currentCode,
-        code
-    })}</span>
 }

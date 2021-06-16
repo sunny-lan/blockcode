@@ -31,27 +31,17 @@ export default class App extends React.Component<any, {
         //     }}
         // />
         const HintProvider=this.hintProvider;
+        const lst=[]
+        for(let i=0;i<200;i++) {
+            lst.push(<span key={i} ><Hint onSelect={() => alert(`hi ${i}`)}/></span>)
+
+        }
         return <HintProvider>
-            <br/><Hint onSelect={()=>alert('hint 1')}/>
-            <br/> <Hint onSelect={()=>alert('hint 2')}/>
-            <br/> <Hint onSelect={()=>alert('hint 3')}/>
-           <br/> <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
-            <br/>  <Hint onSelect={()=>alert('hint 3')}/>
+            <div style={{
+                overflowWrap:'break-word'
+            }}>
+            {lst}</div>
+
         </HintProvider>
     }
 }

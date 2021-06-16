@@ -2,7 +2,11 @@ export type Token = {
     isTemplate: boolean,
     value: string,
 }
+export function compareArray<T>(array1:T[],array2:T[]):boolean{
+   return array1.length === array2.length &&
+       array1.every((value, index) => value === array2[index])
 
+}
 export function arrayLast<T>(arr?:T[], offset:number=1):T|undefined{
     if(!arr)return undefined;
     return arr[arr.length-offset];
