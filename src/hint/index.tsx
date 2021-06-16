@@ -161,12 +161,12 @@ export function makeHintProvider(alphabet: string[]) {
         const [lastVisible,setLastVisible]=useState<VDict>({})
         //const [codes, setCodes] = useState<{ [id: string]: Code }>({});
 
-        console.log('render HintProvider')
+        //console.log('render HintProvider')
 
         useEffect(() => {
             const keys = Object.values(visibleFinal);
             const codeArr = utils.assignCodes(keys)
-            console.log('recalc codeArr')
+            //console.log('recalc codeArr')
             //const newCodes: { [id: string]: Code } = {}
             for (let i = 0; i < keys.length; i++) {
                 // newCodes[keys[i]] = codeArr[i]
@@ -263,6 +263,7 @@ interface HintViewProps {
 function _hintView({currentCode, code}: HintViewProps) {
 
     if (!code) return;
+
     if (currentCode.length > code.length) return;
 
     for (let prefixMatch = 0; prefixMatch < currentCode.length; prefixMatch++) {
@@ -270,11 +271,11 @@ function _hintView({currentCode, code}: HintViewProps) {
             return;
         }
     }
-    return code.map((letter, idx) => (
-        <span key={idx} style={{
-            color: idx < currentCode.length ? 'red' : 'black'
-        }}>{letter}</span>
-    ))
+    return <>
+        <span style={{color:'red'}}>{currentCode.join('')}</span>
+        {code.slice(currentCode.length).join('')}
+    </>
+
 }
 
 function HintView(props: HintViewProps): JSX.Element {
