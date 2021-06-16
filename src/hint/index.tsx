@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useContext, useEffect, useState} from 'react'
+import {useContext, useEffect, useState,useMemo, useCallback} from 'react'
 import {InView} from 'react-intersection-observer';
 import {useDebounce} from 'use-debounce';
 
@@ -161,8 +161,8 @@ export function makeHintProvider(alphabet: string[]) {
 
         }, [debounceVisible])
 
-        return React.useMemo(() => {
-            const ctx: HintContextType = {
+        const functions=useMemo(()=>{
+            return {
                 registerHint(ref: HintRef): string {
                     const id = (uniqId++).toString()
                     // setIdMap(idMap => {
@@ -191,7 +191,7 @@ export function makeHintProvider(alphabet: string[]) {
                     }
                 },
 
-                currentCode,
+
                 // codes,
 
                 push(letter: string) {
@@ -201,10 +201,31 @@ export function makeHintProvider(alphabet: string[]) {
                     setCurrentCode([])
                 }
             }
-            return <HintContext.Provider value={ctx}>
+        }, []);
+
+        //TODO weird things happen when visibility changes while a selection is active
+        const handleKeyDown=useCallback((ev:KeyboardEvent)=>{
+            console.log(ev.key)
+            if(ev.key==='Escape'){
+                functions.clear()
+            }else if(alphabet.includes(ev.key)){
+                functions.push(ev.key)
+            }
+        },[functions]);
+        
+        useEffect(() => {
+            window.addEventListener("keydown", handleKeyDown);
+
+            return () => {
+                window.removeEventListener("keydown", handleKeyDown);
+            };
+        }, [handleKeyDown]);
+
+        return useMemo(() => {
+            return <HintContext.Provider value={{...functions,currentCode}}>
                 {props.children}
             </HintContext.Provider>
-        }, [currentCode]);
+        }, [functions,currentCode]);
 
     }
 }
@@ -222,7 +243,7 @@ interface HintViewProps {
 function _hintView({currentCode, code}: HintViewProps) {
 
     if (!code) return;
-    if (currentCode.length >= code.length) return;
+    if (currentCode.length > code.length) return;
 
     for (let prefixMatch = 0; prefixMatch < currentCode.length; prefixMatch++) {
         if (currentCode[prefixMatch] !== code[prefixMatch]) {
@@ -248,7 +269,7 @@ export function Hint(props: HintProps): JSX.Element {
         throw new Error('Hint cannot be used without HintProvider');
     const [id, setID] = useState<string | undefined>();
     const [code, setCode] = useState<Code | undefined>();
-    const thing = React.useMemo<HintRef>(() => {
+    const thing = useMemo<HintRef>(() => {
         return {
             onCodeChange(code) {
                 setCode(code)
@@ -260,7 +281,7 @@ export function Hint(props: HintProps): JSX.Element {
         setID(_id = ctx.registerHint(thing));
         return () => ctx.unRegisterHint(_id);
     }, []);
-    return React.useMemo(() => {
+    return useMemo(() => {
         if (!id) return <></>;
         //console.log('render hint')
         return <InView as="span" onChange={visible => {

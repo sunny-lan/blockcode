@@ -8,7 +8,8 @@ export default class App extends React.Component<any, {
     root: Block
 }> {
 
-    hintProvider=makeHintProvider(['a','b','c','d','e','f','g','h','i','j'])
+
+    hintProvider=makeHintProvider('abcdefghijklmnopqrstuvwxyz'.split(''))
     constructor(props: {}) {
         super(props);
         this.state = {
@@ -33,7 +34,7 @@ export default class App extends React.Component<any, {
         const HintProvider=this.hintProvider;
         const lst=[]
         for(let i=0;i<200;i++) {
-            lst.push(<span key={i} ><Hint onSelect={() => alert(`hi ${i}`)}/></span>)
+            lst.push(<span key={i} >[<Hint onSelect={() => alert(`hi ${i}`)}/>]</span>)
 
         }
         return <HintProvider>
