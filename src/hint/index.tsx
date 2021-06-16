@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useContext, useEffect, useState,useMemo, useCallback} from 'react'
+import {useContext, useEffect, useState, useMemo, useCallback} from 'react'
 import {InView} from 'react-intersection-observer';
 import {useDebounce} from 'use-debounce';
 
@@ -20,7 +20,7 @@ interface HintRef {
      */
     preferredCodes?: Code[]
 
-    onCodeChange(code: Code): void
+    onCodeChange(code?: Code): void
 }
 
 interface HintContextType {
@@ -136,32 +136,53 @@ export function makeHintUtils(alphabet: string[]) {
     }
 }
 
+function useLock<T>(input: T, lock: boolean): T {
+    const [output, setOutput] = useState<T>(input);
+    useEffect(()=>{
+        if(!lock){
+            setOutput(input);
+        }
+    },[input,lock]);
+    return output;
+}
+type VDict={ [id: string]: HintRef };
 export function makeHintProvider(alphabet: string[]) {
     const utils = makeHintUtils(alphabet);
 
     let uniqId = 1;
     return function HintProvider(props: HintProviderProps): JSX.Element {
         const [currentCode, setCurrentCode] = useState<Code>([]);
-        const [visibleDict, setVisibleDict] = useState<{ [id: string]: HintRef }>({});
+        const [visibleDict, setVisibleDict] = useState<VDict>({});
         //const [idMap, setIdMap] = useState<{ [id: string]: HintRef }>({});
         const [debounceVisible] = useDebounce(visibleDict, 300);
+
+        //prevent the codes from changing as the user is entering the selection code
+        const visibleFinal=useLock(debounceVisible, currentCode.length>0)
+        const [lastVisible,setLastVisible]=useState<VDict>({})
         //const [codes, setCodes] = useState<{ [id: string]: Code }>({});
 
-        //console.log('render HintProvider')
+        console.log('render HintProvider')
 
         useEffect(() => {
-            const keys = Object.values(debounceVisible);
+            const keys = Object.values(visibleFinal);
             const codeArr = utils.assignCodes(keys)
-            //console.log('recalc codeArr')
+            console.log('recalc codeArr')
             //const newCodes: { [id: string]: Code } = {}
             for (let i = 0; i < keys.length; i++) {
                 // newCodes[keys[i]] = codeArr[i]
                 keys[i].onCodeChange(codeArr[i])
             }
 
-        }, [debounceVisible])
+            //clear old codes
+            for (const [id,ref] of Object.entries(lastVisible)) {
+                if(!(id in visibleFinal)){
+                    ref.onCodeChange()
+                }
+            }
+            setLastVisible(visibleFinal)
+        }, [visibleFinal])
 
-        const functions=useMemo(()=>{
+        const functions = useMemo(() => {
             return {
                 registerHint(ref: HintRef): string {
                     const id = (uniqId++).toString()
@@ -204,15 +225,14 @@ export function makeHintProvider(alphabet: string[]) {
         }, []);
 
         //TODO weird things happen when visibility changes while a selection is active
-        const handleKeyDown=useCallback((ev:KeyboardEvent)=>{
-            console.log(ev.key)
-            if(ev.key==='Escape'){
+        const handleKeyDown = useCallback((ev: KeyboardEvent) => {
+            if (ev.key === 'Escape') {
                 functions.clear()
-            }else if(alphabet.includes(ev.key)){
+            } else if (alphabet.includes(ev.key)) {
                 functions.push(ev.key)
             }
-        },[functions]);
-        
+        }, [functions]);
+
         useEffect(() => {
             window.addEventListener("keydown", handleKeyDown);
 
@@ -222,10 +242,10 @@ export function makeHintProvider(alphabet: string[]) {
         }, [handleKeyDown]);
 
         return useMemo(() => {
-            return <HintContext.Provider value={{...functions,currentCode}}>
+            return <HintContext.Provider value={{...functions, currentCode}}>
                 {props.children}
             </HintContext.Provider>
-        }, [functions,currentCode]);
+        }, [functions, currentCode]);
 
     }
 }
