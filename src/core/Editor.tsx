@@ -1,13 +1,14 @@
 import * as React from "react";
 import {Block} from "./Block";
-import {BlockContext, EditorContext, GeneralBlockRender, LanguageRender, makeRenderer} from "./ReactCodeRender";
 import {arrayLast} from "core/Util";
 import {updateNode} from "core/TreeUtils";
 import {LanguageProvider} from "core/Lang2";
+import {BlockRenderer, BlockRenderer2, EditorContext, LanguageRenderer, makeRenderer} from "render";
+import {useEffect, useMemo, useState} from "react";
 
 export interface EditorProps {
     language: LanguageProvider,
-    languageRender: LanguageRender
+    languageRender: LanguageRenderer
 
     content: Block,
 
@@ -22,94 +23,66 @@ export interface EditorProps {
 
 }
 
-
-export default class Editor extends React.Component<EditorProps, {
+interface EditorState {
     suggestions?: Block[]
 
     selected?: Block[],
-    languageRender: GeneralBlockRender
-}> {
+    blockRenderer: BlockRenderer2
 
-    constructor(props: EditorProps) {
-        super(props);
+}
 
-        this.state = {
-            languageRender: makeRenderer(props.languageRender),
+export default function Editor(props: EditorProps): JSX.Element {
+    const [suggestions1, setSuggestions] = useState<Block[] | undefined>()
+    const [selected, setSelected] = useState<Block[] | undefined>()
+    const renderBlock = useMemo(() => makeRenderer(props.languageRender), [props.languageRender])
 
-        };
+    function onSelect(selected?: Block[]) {
+        setSelected(selected)
+        setSuggestions(selected && props.language.suggest(selected))
     }
 
-    componentDidUpdate(prevProps: EditorProps) {
-        //update language renderer
-        if (prevProps.languageRender !== this.props.languageRender) {
-            this.setState({
-                ...this.state,
-                languageRender: makeRenderer(this.props.languageRender)
-            })
-        }
-
-    }
-
-    onSelect(selected?: Block[]) {
-        this.setState({
-            ...this.state,
-            selected,
-            suggestions: selected && this.props.language.suggest(selected)
-        })
-    }
-
-    replaceSelection(newVal: Block) {
-        if (!this.state.selected)
+    function replaceSelection(newVal: Block) {
+        if (!selected)
             throw new Error('No block selected to update');
 
-        this.onSelect(undefined)
-
-        this.props.onChange(updateNode(
-            this.props.content,
-            this.state.selected,
-            newVal,
-        ))
+        onSelect(undefined)
+        onChange(selected, newVal)
     }
 
-    renderSuggestion(suggestion: Block) {
+
+    function onChange(path: Block[], newValue: Block) {
+        props.onChange(updateNode(props.content, path, newValue))
+    }
+
+    function renderSuggestion(suggestion: Block) {
         if (typeof suggestion.type !== 'string')
             throw new Error(`Suggestion type is invalid: ${suggestion.type}`);
         return <li key={suggestion.type}>
             <button onClick={() => {
-                this.replaceSelection(suggestion)
+                replaceSelection(suggestion)
             }}>{suggestion.type}</button>
 
-            <pre>{this.state.languageRender({
-                root: suggestion,
-                onChange() {
-                    throw new Error('Did not expect onchange to be called for suggestion')
-                }
+            <pre>{renderBlock({
+                block: suggestion,
+                path: []
             })}</pre>
         </li>
     }
 
-    render() {
-        let suggestions;
-        if (this.state.suggestions)
-            suggestions = <div>
-                Suggestions:
-                <ul>
-                    {this.state.suggestions.map(this.renderSuggestion.bind(this))}
-                </ul>
-            </div>
+    let suggestions;
+    if (suggestions1)
+        suggestions = <div>
+            Suggestions:
+            <ul>
+                {suggestions1.map(renderSuggestion)}
+            </ul>
+        </div>
 
 
-        return <BlockContext.Provider value={{}}>
-            <EditorContext.Provider value={{
-                onSelect: this.onSelect.bind(this),
-                selected: arrayLast(this.state.selected),
-            }}>
-                <pre>{this.state.languageRender({
-                    root: this.props.content,
-                    onChange: this.props.onChange
-                })}</pre>
-            </EditorContext.Provider>
-            {suggestions}
-        </BlockContext.Provider>
-    }
+    return <>
+        <EditorContext.Provider value={{onSelect, onChange, selected: arrayLast(selected)}}>
+            <pre>{renderBlock({block: props.content})}</pre>
+        </EditorContext.Provider>
+        {suggestions}
+    </>
 }

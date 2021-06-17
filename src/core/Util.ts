@@ -1,6 +1,19 @@
+import * as React from 'react'
 export type Token = {
     isTemplate: boolean,
     value: string,
+}
+export function assert(condition:boolean, message:string='assert failed'): asserts condition {
+    if(!condition)
+    throw new Error(message)
+}
+export function expectNonNull(val:any, message:string='expected to be non-null'):asserts val {
+    assert(val, message)
+}
+export function useContext2<T>(ctx:React.Context<T|undefined>):T{
+    const res=React.useContext(ctx);
+    if(!res)throw new Error('Context consumed outside of producer!');
+    return res
 }
 export function compareArray<T>(array1:T[],array2:T[]):boolean{
    return array1.length === array2.length &&

@@ -1,123 +1,105 @@
-import {BlockProps, BlockRender, EditorContext, InternalBlockRender} from "~/core/ReactCodeRender";
-import {arrayLast, ParsedParams, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
+import {arrayLast, ParsedParams, parseTemplate, parseTemplateParam, Token, useContext2} from "~/core/Util";
 import * as React from "react";
-import {LanguageProvider} from "~core/Lang2";
-import {lookupChild2, setChild} from "~core/TreeUtils";
+import {lookupChild2} from "~core/TreeUtils";
 import {Block, BlockChildren, BlockType} from "~core/Block";
+import {useContext} from "react";
+import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer} from "~render";
 
-export interface ArrayBlockProps {
-    RenderUnknown: InternalBlockRender,
+export interface ArrayBlockProps extends RenderProps {
 
-    onChange(newChild: Block): void
-
-    block: Block
-    path: Block[]
     Separator?: JSX.Element
     parentStyle?: React.CSSProperties,
     childStyle?: React.CSSProperties,
 }
 
 export function ArrayBlock(props: ArrayBlockProps) {
-    const child = props.block;
-    if (!child.isArray)
+    const block = props.block;
+    if (!block.isArray)
         throw new Error(`Expected block to be array`);
-    const elems = [];
-    const arr = child.children;
-    if (!arr) throw new Error('Expected child to have elements');
-    const len = Object.keys(arr).length;
-    const path = props.path.concat(child)
+
+    const children = block.children;
+    if (!children) throw new Error('Expected child to have elements');
+
 
     function Inserter() {
         const style: React.CSSProperties = {
-            background:'none',
-            border:'none'
+            background: 'none',
+            border: 'none'
         };
 
-        return <EditorContext.Consumer>{ctx => {
-            if(!ctx)style.color='gray';
+        const ctx = useContext(EditorContext);
+        if (!ctx) style.color = 'gray';
 
-            return <a
-                style={style}
+        return <a
+            style={style}
 
-                onClick={() => {
-                    if(!ctx)return;
-                    props.onChange(setChild(
-                        child,
-                        len.toString(),
-                        {}
-                    ))
-                }}
+            onClick={() => {
+                if (!ctx) return;
+                //TODO
+            }}
 
 
-            >[+]</a>
-        }}</EditorContext.Consumer>
+        >[+]</a>;
     }
 
+    const {RenderUnknown} = useContext2(BlockContext);
+
+    const len = Object.keys(children).length;
+    const elems = [];
     for (let i = 0; i < len; i++) {
         if (i > 0)
-            if(props.Separator)
+            if (props.Separator)
                 elems.push(props.Separator)
-        elems.push(<props.RenderUnknown
-            key={i}
-            onChange={newElem => {
-                props.onChange(setChild(
-                    child,
-                    i.toString(),
-                    newElem
-                ))
-            }}
-            root={arr[i]}
-            path={path}
-        />)
+        elems.push(RenderUnknown(getChild(props, i.toString())))
     }
 
     return <>{elems}<Inserter/></>
 }
 
-export function fromTemplate(template: string): BlockRender {
-    const tokens:[Token,ParsedParams?][] = parseTemplate(template).map(token=>{
-        if(token.isTemplate)return [token, parseTemplateParam(token.value)]
-        return  [token]
+export function fromTemplate(template: string): BlockRenderer {
+    const tokens: [Token, ParsedParams?][] = parseTemplate(template).map(token => {
+        if (token.isTemplate) return [token, parseTemplateParam(token.value)]
+        return [token]
     })
 
 
-    return function (props: BlockProps): JSX.Element {
-        function renderToken([token,parsed1]:[Token,ParsedParams?]) {
+    return function (props: RenderProps): JSX.Element {
+        const {RenderUnknown}=useContext2(BlockContext)
+        function renderToken([token, _params]: [Token, ParsedParams?]) {
             if (token.isTemplate) {
-                const parsed = parsed1 as ParsedParams
+                const params = _params as ParsedParams
                 const children = props.block.children;
                 if (!children) throw new Error('expected children');
 
-                if (parsed.name in children) {
-                    const child = children[parsed.name]
+                if (params.name in children) {
+                    const child = getChild(props, params.name)
                     let res;
-                    if ('array' in parsed.params) {
+                    if ('array' in params.params) {
 
-                        const separator = <>{parsed.params.separator}</>;
+                        const separator = <>{params.params.separator}</>;
                         res = <span style={{
-                            display: ('horizontal' in parsed.params) ?'flex-inline':'flex',
-                            flexDirection: ('horizontal' in parsed.params) ? 'row' : 'column',
-                            alignItems: parsed.params['align'] ?? 'flex-start',
-                            marginLeft: ('indent' in parsed.params) ? '10px' : '0'
-                        }} key={parsed.name}>
+                            display: ('horizontal' in params.params) ? 'flex-inline' : 'flex',
+                            flexDirection: ('horizontal' in params.params) ? 'row' : 'column',
+                            alignItems: params.params['align'] ?? 'flex-start',
+                            marginLeft: ('indent' in params.params) ? '10px' : '0'
+                        }} key={params.name}>
                             <ArrayBlock
-                                block={child}
-                                onChange={newArr => props.childOnChange(parsed.name, newArr)}
-                                path={props.path}
-                                RenderUnknown={props.RenderUnknown}
-                                Separator={separator}/>
+                                {...child}
+                                Separator={separator}
+                            />
                         </span>
                     } else {
-                        res = <props.RenderChild key={parsed.name} name={parsed.name}/>
+                        res = <RenderUnknown {...child}/>
                     }
 
                     return res;
                 } else {
-                    throw new Error(`Template: Missing child '${parsed.name}' in block '${props.block.type}'`);
+                    throw new Error(`Template: Missing child '${params.name}' in block '${props.block.type}'`);
                 }
             }
             return token.value
         }
+
         return <span>
             {tokens.map(renderToken)}
         </span>
@@ -184,7 +166,7 @@ export function makeSequenceDef({childSpec, info, type,}: SequenceDef): BlockDef
     }
 }
 
-export type BlockDefs={ [name: string]: BlockDef };
+export type BlockDefs = { [name: string]: BlockDef };
 
 
 export function fromBlockTemplates(blockDefs: BlockDefs) {
@@ -231,7 +213,7 @@ export function fromBlockTemplates(blockDefs: BlockDefs) {
                 throw new Error('Proposed block must have a type');
             const suggestionDef = blockDefs[suggestion.type];
 
-            if (typeof spec=== 'function') {
+            if (typeof spec === 'function') {
                 return spec(childName, suggestion, suggestionDef);
             } else {
                 return checkBlock(suggestionDef, spec[childName]);
