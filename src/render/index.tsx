@@ -75,7 +75,7 @@ export function makeRenderer(renderer: LanguageRenderer) :BlockRenderer2{
 
         const root = props.block
         const block = root;
-        const path = props.path.concat(root);
+        const path = props.path;
 
         if (!block.type) {
             throw new Error(`Unknown how to render block`);
@@ -85,19 +85,15 @@ export function makeRenderer(renderer: LanguageRenderer) :BlockRenderer2{
         if (!(block.type in renderer))
             throw new Error(`No renderer for block: ${block.type}`);
 
-        const blockRenderer = renderer[block.type];
-        return blockRenderer({
-            block,
-            path,
-
-        })
+        const RenderBlock = renderer[block.type];
+        return <RenderBlock path={path} block={block}/>
     }
 
     return (x: RenderProps2) => {
         return <BlockContext.Provider value={{
             RenderUnknown: render
         }}>
-            {render({...x, path: x.path ?? []})}
+            {render({block:x.block, path: x.path ?? []})}
         </BlockContext.Provider>
     }
 }

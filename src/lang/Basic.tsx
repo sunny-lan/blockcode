@@ -3,7 +3,8 @@ import * as React from "react";
 import {lookupChild2} from "~core/TreeUtils";
 import {Block, BlockChildren, BlockType} from "~core/Block";
 import {useContext} from "react";
-import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer} from "~render";
+import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer} from "~/render";
+import {ChildRenderer} from "~render/BasicRenderers";
 
 export interface ArrayBlockProps extends RenderProps {
 
@@ -89,7 +90,7 @@ export function fromTemplate(template: string): BlockRenderer {
                             />
                         </span>
                     } else {
-                        res = <RenderUnknown {...child}/>
+                        res = <ChildRenderer {...child}/>
                     }
 
                     return res;
