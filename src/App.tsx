@@ -5,19 +5,21 @@ import {Block} from "~/core/Block";
 import {Hint, makeHintProvider} from "hint";
 import { useState } from "react";
 
-const hintProvider = makeHintProvider('abcdefghijklmnopqrstuvwxyz'.split(''))
+const HintProvider = makeHintProvider('abcdefghijklmnopqrstuvwxyz'.split(''))
 export default function App() :JSX.Element{
     const [content,setContent]=useState<Block>(()=>ProceduralLang.hydrate(ProceduralBlockDefs.functiondef));
 
-    return <Editor
-        onSelected={x => {
-        }}
+    return <HintProvider>
+        <Editor
+            onSelected={x => {
+            }}
 
-        language={ProceduralLang}
-        languageRender={ProceduralRender}
-        content={content}
-        onChange={setContent}
-    />
+            language={ProceduralLang}
+            languageRender={ProceduralRender}
+            content={content}
+            onChange={setContent}
+        />
+    </HintProvider>
     // const HintProvider=this.hintProvider;
     // const lst=[]
     // for(let i=0;i<200;i++) {

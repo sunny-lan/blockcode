@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useContext, useEffect, useState, useMemo, useCallback} from 'react'
+import {useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import {InView} from 'react-intersection-observer';
 import {useDebounce} from 'use-debounce';
 import {compareArray} from "~core/Util";
@@ -32,7 +32,7 @@ interface HintContextType {
 
     unRegisterHint(id: string): void
 
-    setVisible(id: string, visible: boolean, hint: HintRef): void
+    setVisible(id: string, visible: boolean): void
 
     currentCode: Code
 
@@ -139,14 +139,16 @@ export function makeHintUtils(alphabet: string[]) {
 
 function useLock<T>(input: T, lock: boolean): T {
     const [output, setOutput] = useState<T>(input);
-    useEffect(()=>{
-        if(!lock){
+    useEffect(() => {
+        if (!lock) {
             setOutput(input);
         }
-    },[input,lock]);
+    }, [input, lock]);
     return output;
 }
-type VDict={ [id: string]: HintRef };
+
+type VDict = { [id: string]: HintRef };
+
 export function makeHintProvider(alphabet: string[]) {
     const utils = makeHintUtils(alphabet);
 
@@ -154,30 +156,33 @@ export function makeHintProvider(alphabet: string[]) {
     return function HintProvider(props: HintProviderProps): JSX.Element {
         const [currentCode, setCurrentCode] = useState<Code>([]);
         const [visibleDict, setVisibleDict] = useState<VDict>({});
-        //const [idMap, setIdMap] = useState<{ [id: string]: HintRef }>({});
+        const [idMap, setIdMap] = useState<{ [id: string]: HintRef }>({});
         const [debounceVisible] = useDebounce(visibleDict, 300);
 
         //prevent the codes from changing as the user is entering the selection code
-        const visibleFinal=useLock(debounceVisible, currentCode.length>0)
-        const [lastVisible,setLastVisible]=useState<VDict>({})
+        const visibleFinal = useLock(debounceVisible, currentCode.length > 0)
+        const [lastVisible, setLastVisible] = useState<VDict>({})
         //const [codes, setCodes] = useState<{ [id: string]: Code }>({});
 
         //console.log('render HintProvider')
 
         useEffect(() => {
-            const keys = Object.values(visibleFinal);
-            const codeArr = utils.assignCodes(keys)
+            console.log('recalc', Object.keys(visibleFinal))
+
+            const values = Object.values(visibleFinal);
+            const codeArr = utils.assignCodes(values)
             //console.log('recalc codeArr')
             //const newCodes: { [id: string]: Code } = {}
-            for (let i = 0; i < keys.length; i++) {
+            for (let i = 0; i < values.length; i++) {
                 // newCodes[keys[i]] = codeArr[i]
-                keys[i].onCodeChange(codeArr[i])
+                values[i].onCodeChange(codeArr[i])
             }
 
             //clear old codes
-            for (const [id,ref] of Object.entries(lastVisible)) {
-                if(!(id in visibleFinal)){
-                    ref.onCodeChange()
+            for (const [id, ref] of Object.entries(lastVisible)) {
+                if (!(id in visibleFinal)) {
+                    if (id in idMap)
+                        ref.onCodeChange()
                 }
             }
             setLastVisible(visibleFinal)
@@ -187,19 +192,22 @@ export function makeHintProvider(alphabet: string[]) {
             return {
                 registerHint(ref: HintRef): string {
                     const id = (uniqId++).toString()
-                    // setIdMap(idMap => {
-                    //     return {...idMap, [id]: ref}
-                    // })
+                    console.log('register', id)
+                    setIdMap(idMap => {
+                        return {...idMap, [id]: ref}
+                    })
                     return id;
                 },
                 unRegisterHint(id: string): void {
-                    // setIdMap(idMap => {
-                    //     const {[id]: _, ...newIdMap} = idMap;
-                    //     return newIdMap;
-                    // })
+                    console.log('unregister', id)
+                    setIdMap(idMap => {
+                        const {[id]: _, ...newIdMap} = idMap;
+                        return newIdMap;
+                    })
+                    this.setVisible(id, false)
                 },
-                setVisible(id: string, visible: boolean, thing: HintRef) {
-                    //console.log('visibility change', id, visible)
+                setVisible(id: string, visible: boolean) {
+                    console.log('visibility change', id, visible)
                     if (!visible) {
 
                         setVisibleDict(visibleDict => {
@@ -207,6 +215,7 @@ export function makeHintProvider(alphabet: string[]) {
                             return newDict;
                         });
                     } else {
+                        const thing = idMap[id]
                         setVisibleDict(visibleDict => {
                             return {...visibleDict, [id]: thing}
                         })
@@ -223,9 +232,8 @@ export function makeHintProvider(alphabet: string[]) {
                     setCurrentCode([])
                 }
             }
-        }, []);
+        }, [idMap]);
 
-        //TODO weird things happen when visibility changes while a selection is active
         const handleKeyDown = useCallback((ev: KeyboardEvent) => {
             if (ev.key === 'Escape') {
                 functions.clear()
@@ -264,7 +272,6 @@ interface HintViewProps {
 function _hintView({currentCode, code}: HintViewProps) {
 
     if (!code) return;
-    if(currentCode.length==0)return code;
 
     if (currentCode.length > code.length) return;
 
@@ -274,8 +281,8 @@ function _hintView({currentCode, code}: HintViewProps) {
         }
     }
     return <>
-        <span style={{color:'red'}}>{currentCode.join('')}</span>
-        {code.slice(currentCode.length).join('')}
+        <span style={{color: 'red'}}>{currentCode.join('')}</span>
+        <span style={{color: 'lightgray'}}>{code.slice(currentCode.length).join('')}</span>
     </>
 
 }
@@ -305,20 +312,20 @@ export function Hint(props: HintProps): JSX.Element {
         setID(_id = ctx.registerHint(thing));
         return () => ctx.unRegisterHint(_id);
     }, []);
-    useEffect(()=>{
-        if(!code)return;
-        if(code.length===ctx.currentCode.length){
-            if(compareArray(code, ctx.currentCode)) {
+    useEffect(() => {
+        if (!code) return;
+        if (code.length === ctx.currentCode.length) {
+            if (compareArray(code, ctx.currentCode)) {
                 ctx.clear()
                 props.onSelect()
             }
         }
-    },[code, ctx.currentCode]);
+    }, [code, ctx.currentCode]);
     return useMemo(() => {
         if (!id) return <></>;
         //console.log('render hint')
         return <InView as="span" onChange={visible => {
-            ctx.setVisible(id, visible, thing)
+            ctx.setVisible(id, visible)
         }}>{_hintView({
             code,
             currentCode: ctx.currentCode

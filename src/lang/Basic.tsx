@@ -1,37 +1,9 @@
 import {arrayLast2, expectNonNull, ParsedParams, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
 import * as React from "react";
 import {Block, BlockChildren, BlockType, BlockWithParent} from "~core/Block";
-import {BlockRenderer, getChild, getChildOpt, RenderProps, SelectionType} from "~/render";
-import {ChildRenderer, OptionalChild} from "~render/BasicRenderers";
-
-export interface ArrayBlockProps extends RenderProps<false> {
-
-    Separator?: JSX.Element
-    parentStyle?: React.CSSProperties,
-    childStyle?: React.CSSProperties,
-}
-
-export function ArrayBlock(props: ArrayBlockProps) {
-    const block = props.block;
-    if (!block.isArray)
-        throw new Error(`Expected block to be array`);
-
-    const children = block.children;
-    if (!children) throw new Error('Expected child to have elements');
-
-
-
-    const len = Object.keys(children).length;
-    const elems = [];
-    for (let i = 0; i <= len; i++) {
-        if (i > 0)
-            if (props.Separator)
-                elems.push(props.Separator)
-        elems.push(<OptionalChild {...getChildOpt(props, i.toString())}/>)
-    }
-
-    return <>{elems}</>
-}
+import {BlockRenderer, getChild, RenderProps, SelectionType} from "~/render";
+import {ChildRenderer} from "~render/BasicRenderers";
+import {ArrayBlock} from "~render/ArrayBlock";
 
 export function fromTemplate(template: string): BlockRenderer<false> {
     const tokens: [Token, ParsedParams?][] = parseTemplate(template).map(token => {
@@ -65,7 +37,7 @@ export function fromTemplate(template: string): BlockRenderer<false> {
                             />
                         </span>
                     } else {
-                        res = <ChildRenderer {...child}/>
+                        res = <ChildRenderer key={params.name} {...child}/>
                     }
 
                     return res;

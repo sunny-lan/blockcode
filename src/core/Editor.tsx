@@ -4,6 +4,7 @@ import {Block} from "./Block";
 import {updateNodeStr} from "core/TreeUtils";
 import {LanguageProvider} from "core/Lang2";
 import {EditorContext, LanguageRenderer, makeRenderer, SelectionType} from "render";
+import { Hint } from "~hint/index";
 
 export interface EditorProps {
     language: LanguageProvider,
@@ -41,8 +42,11 @@ export default function Editor(props: EditorProps): JSX.Element {
         if (!selected)
             throw new Error('No block selected to update');
 
-        setSelected(undefined)
         onChange(selected.path, newVal)
+        setSelected({
+            ...selected,
+            block:newVal
+        })
     }
 
 
@@ -54,9 +58,7 @@ export default function Editor(props: EditorProps): JSX.Element {
         if (typeof suggestion.type !== 'string')
             throw new Error(`Suggestion type is invalid: ${suggestion.type}`);
         return <li key={suggestion.type}>
-            <button onClick={() => {
-                replaceSelection(suggestion)
-            }}>{suggestion.type}</button>
+            <strong>{suggestion.type}-<Hint onSelect={() => replaceSelection(suggestion)}/></strong>
 
             <pre>{renderBlock({
                 block: suggestion,

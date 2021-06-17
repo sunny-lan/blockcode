@@ -1,9 +1,8 @@
 import * as React from 'react';
-import {useContext, useEffect} from 'react';
-import {Block} from "~core/Block";
-import {BlockContext, ChildRenderProps, EditorContext, EditorContextType} from "~render/index";
-import {arrayLast2, expectNonNull, useContext2} from "~core/Util";
-import {setChild} from "~core/TreeUtils";
+import {useContext} from 'react';
+import {BlockContext, ChildRenderProps, EditorContext} from "~render/index";
+import {expectNonNull, useContext2} from "~core/Util";
+import {Hint} from "~hint/index";
 
 /**
  * Renders an arbitrary child, handles if the child is missing
@@ -12,12 +11,24 @@ import {setChild} from "~core/TreeUtils";
  * @param props
  * @constructor
  */
-export function ChildRenderer(props: EmptyBlockProps<false>) {
+export function ChildRenderer(props: EmptyBlockProps<false>) :JSX.Element{
     const {RenderUnknown} = useContext2(BlockContext)
+    const context=useContext(EditorContext)
+
+    let res;
     if (props.block.type)
-        return <RenderUnknown {...props}/>
+        res= <RenderUnknown {...props}/>
     else
-        return <EmptyBlock {...props}/>
+        res= <EmptyBlock {...props}/>
+
+    function activate() {
+        expectNonNull(context)
+
+        context.onSelect(props)
+    }
+    return <span>
+        {res}{context && <Hint onSelect={activate}/>}
+    </span>
 }
 
 export function OptChild(props: EmptyBlockProps<true>) {
@@ -28,9 +39,9 @@ export function OptChild(props: EmptyBlockProps<true>) {
 
 export function OptionalChild(props: EmptyBlockProps<boolean>) {
     if (props.block) {
-        return ChildRenderer(props)
+        return <ChildRenderer {...props}/>
     } else {
-        return OptChild(props)
+        return <OptChild {...props}/>
     }
 }
 
@@ -65,13 +76,10 @@ export function EmptyBlock(props: EmptyBlockProps<false>) {
             style.background = 'blue'
             style.color = 'white'
         }
-        res = <a
-            onClick={() => context && context.onSelect({
-                path,
-                block: props.block,
-                parent: props.parent
-            })}
-            style={style}>{res}</a>
+        res = <span
+            style={style}>
+            {res}
+        </span>
     }
 
     return res
