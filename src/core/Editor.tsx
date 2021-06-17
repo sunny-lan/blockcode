@@ -36,9 +36,11 @@ export default function Editor(props: EditorProps): JSX.Element {
     const [selected, setSelected] = useState<Block[] | undefined>()
     const renderBlock = useMemo(() => makeRenderer(props.languageRender), [props.languageRender])
 
-    function onSelect(selected?: Block[]) {
+    function onSelect(selected?: Block[],done?:()=>void) {
         setSelected(selected)
+        console.log(selected)
         setSuggestions(selected && props.language.suggest(selected))
+        done && done()
     }
 
     function replaceSelection(newVal: Block) {

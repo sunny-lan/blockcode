@@ -3,10 +3,10 @@ import * as React from "react";
 import {lookupChild2, setChild} from "~core/TreeUtils";
 import {Block, BlockChildren, BlockType} from "~core/Block";
 import {useContext} from "react";
-import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer} from "~/render";
-import {ChildRenderer} from "~render/BasicRenderers";
+import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer, getChildOpt, getChildOpt2} from "~/render";
+import {ChildRenderer, OptChild, OptionalChild} from "~render/BasicRenderers";
 
-export interface ArrayBlockProps extends RenderProps {
+export interface ArrayBlockProps extends RenderProps<false> {
 
     Separator?: JSX.Element
     parentStyle?: React.CSSProperties,
@@ -22,50 +22,27 @@ export function ArrayBlock(props: ArrayBlockProps) {
     if (!children) throw new Error('Expected child to have elements');
 
 
-    function Inserter() {
-        const style: React.CSSProperties = {
-            background: 'none',
-            border: 'none'
-        };
-
-        const ctx = useContext(EditorContext);
-        if (!ctx) style.color = 'gray';
-
-        return <a
-            style={style}
-
-            onClick={() => {
-                if (!ctx) return;
-                ctx.onChange(props.path.concat(block), setChild(block,len.toString(),{}))
-            }}
-
-
-        >[+]</a>;
-    }
-
-    const {RenderUnknown} = useContext2(BlockContext);
 
     const len = Object.keys(children).length;
     const elems = [];
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i <= len; i++) {
         if (i > 0)
             if (props.Separator)
                 elems.push(props.Separator)
-        elems.push(<ChildRenderer {...getChild(props, i.toString())}/>)
+        elems.push(<OptionalChild {...getChildOpt(props, i.toString())}/>)
     }
 
-    return <>{elems}<Inserter/></>
+    return <>{elems}</>
 }
 
-export function fromTemplate(template: string): BlockRenderer {
+export function fromTemplate(template: string): BlockRenderer<false> {
     const tokens: [Token, ParsedParams?][] = parseTemplate(template).map(token => {
         if (token.isTemplate) return [token, parseTemplateParam(token.value)]
         return [token]
     })
 
 
-    return function (props: RenderProps): JSX.Element {
-        const {RenderUnknown}=useContext2(BlockContext)
+    return function (props: RenderProps<false>): JSX.Element {
         function renderToken([token, _params]: [Token, ParsedParams?]) {
             if (token.isTemplate) {
                 const params = _params as ParsedParams
