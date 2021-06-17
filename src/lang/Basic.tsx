@@ -1,10 +1,8 @@
-import {arrayLast, ParsedParams, parseTemplate, parseTemplateParam, Token, useContext2} from "~/core/Util";
+import {arrayLast2, expectNonNull, ParsedParams, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
 import * as React from "react";
-import {lookupChild2, setChild} from "~core/TreeUtils";
-import {Block, BlockChildren, BlockType} from "~core/Block";
-import {useContext} from "react";
-import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer, getChildOpt, getChildOpt2} from "~/render";
-import {ChildRenderer, OptChild, OptionalChild} from "~render/BasicRenderers";
+import {Block, BlockChildren, BlockType, BlockWithParent} from "~core/Block";
+import {BlockRenderer, getChild, getChildOpt, RenderProps, SelectionType} from "~/render";
+import {ChildRenderer, OptionalChild} from "~render/BasicRenderers";
 
 export interface ArrayBlockProps extends RenderProps<false> {
 
@@ -174,17 +172,17 @@ export function fromBlockTemplates(blockDefs: BlockDefs) {
     const basicTempl: Block[] = Object.values(blockDefs).map(hydrate);
 
 
-    function additionalBlocks(path: Block[], childName: string): Block[] {
+    function additionalBlocks(selection:SelectionType): Block[] {
         return []
     }
 
-    function suggestInternal(block: Block, childName: string, path: Block[]): Block[] {
+    function suggestInternal(block:BlockWithParent, childName: string, selection:SelectionType): Block[] {
         if (!block.type) return [];
         const def = blockDefs[block.type];
         if (!def.children)
             throw new Error('Block expected to have child');
         const spec = def.children;
-        const allSuggestions = basicTempl.concat(additionalBlocks(path, childName));
+        const allSuggestions = basicTempl.concat(additionalBlocks(selection));
 
         let a = allSuggestions.filter(suggestion => {
             if (!suggestion.type)
@@ -202,12 +200,11 @@ export function fromBlockTemplates(blockDefs: BlockDefs) {
 
     return {
         hydrate,
-        suggest(path: Block[]): Block[] {
-            const block = arrayLast(path);
-            if (!block) throw new Error("tried to suggest on null block");
-            if (path.length - 1 < 0) throw new Error("No parent in block");
-            const parent = path[path.length - 2];
-            return suggestInternal(parent, lookupChild2(parent, block), path)
+        suggest(root:Block, selection:SelectionType): Block[] {
+            const parent=selection.parent;
+            expectNonNull(parent)
+
+            return suggestInternal(parent, arrayLast2(selection.path), selection)
         }
 
     }

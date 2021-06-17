@@ -1,10 +1,9 @@
 import * as React from "react";
+import {useMemo, useState} from "react";
 import {Block} from "./Block";
-import {arrayLast} from "core/Util";
-import {updateNode} from "core/TreeUtils";
+import {updateNodeStr} from "core/TreeUtils";
 import {LanguageProvider} from "core/Lang2";
-import {BlockRenderer, BlockRenderer2, EditorContext, LanguageRenderer, makeRenderer} from "render";
-import {useEffect, useMemo, useState} from "react";
+import {EditorContext, LanguageRenderer, makeRenderer, SelectionType} from "render";
 
 export interface EditorProps {
     language: LanguageProvider,
@@ -23,37 +22,32 @@ export interface EditorProps {
 
 }
 
-interface EditorState {
-    suggestions?: Block[]
-
-    selected?: Block[],
-    blockRenderer: BlockRenderer2
-
-}
 
 export default function Editor(props: EditorProps): JSX.Element {
     const [suggestions1, setSuggestions] = useState<Block[] | undefined>()
-    const [selected, setSelected] = useState<Block[] | undefined>()
+    const [selected, setSelected] = useState<SelectionType | undefined>()
     const renderBlock = useMemo(() => makeRenderer(props.languageRender), [props.languageRender])
 
-    function onSelect(selected?: Block[],done?:()=>void) {
+    React.useEffect(()=>{
+        setSuggestions(selected && props.language.suggest(props.content, selected))
+    },[selected])
+
+    function onSelect(selected: SelectionType, done?: () => void): void {
         setSelected(selected)
-        console.log(selected)
-        setSuggestions(selected && props.language.suggest(selected))
-        done && done()
+        if(done)throw new Error('onSelect done callback not supported')
     }
 
     function replaceSelection(newVal: Block) {
         if (!selected)
             throw new Error('No block selected to update');
 
-        onSelect(undefined)
-        onChange(selected, newVal)
+        setSelected(undefined)
+        onChange(selected.path, newVal)
     }
 
 
-    function onChange(path: Block[], newValue: Block) {
-        props.onChange(updateNode(props.content, path, newValue))
+    function onChange(path: string[], newValue: Block) {
+        props.onChange(updateNodeStr(props.content, path, newValue))
     }
 
     function renderSuggestion(suggestion: Block) {
@@ -82,7 +76,7 @@ export default function Editor(props: EditorProps): JSX.Element {
 
 
     return <>
-        <EditorContext.Provider value={{onSelect, onChange, selected: arrayLast(selected)}}>
+        <EditorContext.Provider value={{onSelect, onChange, selected: selected?.block}}>
             <pre>{renderBlock({block: props.content})}</pre>
         </EditorContext.Provider>
         {suggestions}

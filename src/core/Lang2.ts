@@ -1,9 +1,10 @@
 import {Block} from "~core/Block";
+import {SelectionType} from "~render";
 
-export interface LanguageProvider{
+export interface LanguageProvider {
     /**
-     * Path[0] provides root
-     * @param path
+     * @param root
+     * @param selection
      */
-    suggest(path:Block[]):Block[]
+    suggest(root: Block, selection: SelectionType): Block[]
 }

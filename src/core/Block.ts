@@ -14,3 +14,6 @@ export interface Block {
 }
 
 
+export interface BlockWithParent extends Block {
+    parent: BlockWithParent | undefined
+}

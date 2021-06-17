@@ -12,7 +12,7 @@ import {setChild} from "~core/TreeUtils";
  * @param props
  * @constructor
  */
-export function ChildRenderer(props: EmptyBlockProps) {
+export function ChildRenderer(props: EmptyBlockProps<false>) {
     const {RenderUnknown} = useContext2(BlockContext)
     if (props.block.type)
         return <RenderUnknown {...props}/>
@@ -20,78 +20,21 @@ export function ChildRenderer(props: EmptyBlockProps) {
         return <EmptyBlock {...props}/>
 }
 
-interface VirtualChildProps extends ChildRenderProps<true> {
-    children(childProps: ChildRenderProps<false>): JSX.Element
+export function OptChild(props: EmptyBlockProps<true>) {
+    const [virtChild] = React.useState({});
+    return <ChildRenderer {...props} block={virtChild} childHint={props.childHint ?? `[${props.childName}]`}/>
 
 }
 
-/**
- * Makes it apparent to children that a certain child exists, even if it doesn't
- * @param props
- * @constructor
- */
-export function VirtualChild(props: VirtualChildProps): JSX.Element {
-    const parentCtx = useContext(EditorContext)
-   // const [selected, setSelected] = React.useState<Block>()
-    const [virtualChild] = React.useState<Block>({})
-
-    const faked:EditorContextType|undefined=React.useMemo(()=>parentCtx && {
-        onSelect(path: Block[]) {
-            const selection = arrayLast2(path)
-            if (selection === virtualChild) {
-            //     setSelected(selection)
-                //TODO super sketch
-                const pChildren=arrayLast2(path,2).children;
-                if(!pChildren)throw new Error('bad');
-                const old=pChildren[props.childName];
-                pChildren[props.childName]=virtualChild;
-                parentCtx.onSelect(path, ()=>pChildren[props.childName]=old)
-            } else {
-            //     console.error('this should never happen, since virtualChild is the only child')
-            //     setSelected(undefined)
-                parentCtx.onSelect(path)
-            }
-
-            // parentCtx.onSelect(path)
-        },
-        onChange(path: Block[], newValue: Block) {
-            //TODO this is an optimization since it doesn't check the full path
-            if (arrayLast2(path) === virtualChild) {
-                //if we are setting the virtual child, we cannot directly use the path
-                //as it doesn't exist yet int the actual tree
-                const parent = arrayLast2(props.path);
-                parentCtx.onChange(props.path, setChild(parent, props.childName, newValue))
-            } else {
-                console.error('this should never happen, since virtualChild is the only child')
-                parentCtx.onChange(path, newValue)
-            }
-        },
-        selected:parentCtx.selected
-    },[props.childName,props.path,parentCtx]);
-
-    return <EditorContext.Provider value={faked}>
-        {props.children({
-            ...props,
-            block: virtualChild
-        })}
-    </EditorContext.Provider>
-}
-
-export function OptChild(props:ChildRenderProps<true>) {
-    return <VirtualChild {...props}>{props2=>(
-        <ChildRenderer {...props2} childHint={`[${props2.childName}]`}/>
-    )}</VirtualChild>
-}
-
-export function OptionalChild(props:ChildRenderProps<boolean>) {
-    if(props.block){
+export function OptionalChild(props: EmptyBlockProps<boolean>) {
+    if (props.block) {
         return ChildRenderer(props)
-    }else{
+    } else {
         return OptChild(props)
     }
 }
 
-export interface EmptyBlockProps extends ChildRenderProps<false> {
+export interface EmptyBlockProps<optional extends boolean> extends ChildRenderProps<optional> {
     /**
      * The text displayed to help the user know what this child is supposed to be
      */
@@ -103,29 +46,34 @@ export interface EmptyBlockProps extends ChildRenderProps<false> {
  * @param props
  * @constructor
  */
-export function EmptyBlock(props: EmptyBlockProps) {
+export function EmptyBlock(props: EmptyBlockProps<false>) {
     const root = props.block, path = props.path;
     const context = useContext(EditorContext)
 
-    const style: React.CSSProperties = {
-        background: 'none',
-        border: 'none',
-        color: 'blue'
-    };
-    if (context?.selected === root) {
-        style.background = 'blue'
-        style.color = 'white'
+
+    let res: JSX.Element = <>{props.childHint ?? `<${props.childName}>`}</>;
+
+    if (context) {
+
+        const style: React.CSSProperties = {
+            background: 'none',
+            border: 'none',
+            color: 'blue'
+        };
+
+        if (context.selected === root) {
+            style.background = 'blue'
+            style.color = 'white'
+        }
+        res = <a
+            onClick={() => context && context.onSelect({
+                path,
+                block: props.block,
+                parent: props.parent
+            })}
+            style={style}>{res}</a>
     }
-    if (!context)
-        style.color = 'gray'
 
-    let text = props.childHint ?? `<${props.childName}>`;
-
-    return <a
-        onClick={() => context && context.onSelect(path.concat(root))}
-        style={style}
-    >
-        {text}
-    </a>
+    return res
 
 }

@@ -1,3 +1,4 @@
+
 export interface Node {
     children?: { [name: string]: Node }
 }
@@ -48,5 +49,22 @@ export function updateNodeStr(tree: Node, path: string[], newVal: Node): Node {
         tree.children[path[0]],
         path.slice(1),
         newVal
+    ))
+}
+
+/**
+ * Returns the deepest matching path in the tree
+ * @param tree
+ * @param path
+ */
+export function traverse(tree:Node|undefined, path:string[]):Node[]{
+    if(!tree) return []
+
+    if(path.length===0)
+        return [tree];
+
+    return [tree].concat(traverse(
+        tree.children && tree.children[path[0]],
+        path.slice(1)
     ))
 }

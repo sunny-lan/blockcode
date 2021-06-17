@@ -4,3 +4,4 @@ import App from "./App";
 import 'css/main.css'
 
 ReactDOM.render(<App />, document.getElementById("root"));
+export {BlockWithParent} from "core/Block";

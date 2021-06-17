@@ -1,11 +1,9 @@
-import {Block} from "~core/Block";
+import {Block, BlockWithParent} from "~core/Block";
 import * as React from 'react'
-import {setChild} from "~core/TreeUtils";
-import {expectNonNull} from "~core/Util";
 
 export interface RenderProps2<optional extends boolean> {
     block: optional extends true ? undefined : Block
-    path?: Block[]
+    path?: string[]
 
     // onChange?(newBlock: Block): void
 }
@@ -17,7 +15,9 @@ export interface RenderProps<optional extends boolean> extends RenderProps2<opti
     /**
      * Does not include {this.block}
      */
-    path: Block[]
+    path: string[]
+
+    parent: BlockWithParent|undefined
 }
 
 export interface BlockRenderer<optional extends boolean> {
@@ -37,23 +37,29 @@ export interface BlockContextType {
     RenderUnknown: BlockRenderer<false>
 }
 
+export interface SelectionType {
+    path: string[],
+    block: Block
+    parent:BlockWithParent|undefined
+}
+
 export interface EditorContextType {
     /**
      *
-     * @param path Path to the selected block where {path[path.length-1]} is the selected block
      * and {path[0]} is the root
+     * @param selection
      * @param done Called when update is done
      */
-    onSelect(path?: Block[], done?:()=>void): void
+    onSelect(selection?: SelectionType, done?: () => void): void
 
     selected?: Block
 
     /**
      *
-     * @param path Path to update, where the last element is the block to replace
+     * @param path Path to update
      * @param newValue
      */
-    onChange(path: Block[], newValue: Block): void
+    onChange(path: string[], newValue: Block): void
 }
 
 
@@ -73,6 +79,7 @@ export function getChild(props: RenderProps<false>, childName: string): ChildRen
 export function getChildOpt2(props: RenderProps<false>, childName: string): ChildRenderProps<true> {
     const res = getChildOpt(props, childName)
     if (res.block) throw new Error(`Child ${childName} shouldn't exist on block`);
+    delete res.block
     return res
 }
 
@@ -81,12 +88,16 @@ export function getChildOpt(props: RenderProps<false>, childName: string): Child
         throw new Error('Invalid block given. Block has no children');
     return {
         block: props.block.children[childName],
-        path: props.path.concat(props.block),
+        path: props.path.concat(childName),
         childName,
         // onChange: props.onChange && ((newBlock: Block) => {
         //     expectNonNull(props.onChange)
         //     props.onChange(setChild(props.block, childName, newBlock))
         // })
+        parent: {
+            ...props.block,
+            parent:props.parent
+        }
     }
 }
 
@@ -111,7 +122,11 @@ export function makeRenderer(renderer: LanguageRenderer): BlockRenderer2 {
         return <BlockContext.Provider value={{
             RenderUnknown: render
         }}>
-            {render({...props, path: props.path ?? []})}
+            {render({
+                ...props,
+                path: props.path ?? [],
+                parent:undefined
+            })}
         </BlockContext.Provider>
     }
 }

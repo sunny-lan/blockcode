@@ -1,8 +1,9 @@
-import {BlockRender, LanguageRender} from "~/core/ReactCodeRender";
 import * as React from "react";
 import {BlockDef, BlockDefs, fromBlockTemplates, fromTemplate, makeSequenceDef} from "~/lang/Basic";
 
 import {LanguageProvider} from "~core/Lang2";
+import {BlockRenderer, LanguageRenderer} from "~render";
+import {expectNonNull} from "~core/Util";
 
 enum Tags {
     expression = 'expression',
@@ -119,12 +120,13 @@ export const ProceduralBlockDefs=defList;
 const impl = fromBlockTemplates(defList);
 export const ProceduralLang = impl;
 
-export function parenExpression(Wrapped: BlockRender): BlockRender {
+export function parenExpression(Wrapped: BlockRenderer<false>): BlockRenderer<false> {
     return props => {
         let child = Wrapped(props)
         const len=props.path.length;
         if(len>1){
-            const parent=props.path[len-2];
+            const parent=props.parent;
+            expectNonNull(parent)
             if(!parent.type)throw new Error('parent of block has no type!');
             if(blockDefs[parent.type].info.tag === Tags.expression)
                 child=<span>({child})</span>;
@@ -133,7 +135,7 @@ export function parenExpression(Wrapped: BlockRender): BlockRender {
     }
 }
 
-export const ProceduralRender: LanguageRender = {
+export const ProceduralRender: LanguageRenderer = {
     codeblock: fromTemplate("\\{${statements|array,indent,separator:\n}\\}"),
     varDecl: fromTemplate("tmp_vardecl"),
     nameDef: fromTemplate("tmp_nameDef"),
