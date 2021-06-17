@@ -1,6 +1,6 @@
 import {arrayLast, ParsedParams, parseTemplate, parseTemplateParam, Token, useContext2} from "~/core/Util";
 import * as React from "react";
-import {lookupChild2} from "~core/TreeUtils";
+import {lookupChild2, setChild} from "~core/TreeUtils";
 import {Block, BlockChildren, BlockType} from "~core/Block";
 import {useContext} from "react";
 import {BlockContext, EditorContext, RenderProps, getChild, BlockRenderer} from "~/render";
@@ -36,7 +36,7 @@ export function ArrayBlock(props: ArrayBlockProps) {
 
             onClick={() => {
                 if (!ctx) return;
-                //TODO
+                ctx.onChange(props.path.concat(block), setChild(block,len.toString(),{}))
             }}
 
 
@@ -51,7 +51,7 @@ export function ArrayBlock(props: ArrayBlockProps) {
         if (i > 0)
             if (props.Separator)
                 elems.push(props.Separator)
-        elems.push(RenderUnknown(getChild(props, i.toString())))
+        elems.push(<ChildRenderer {...getChild(props, i.toString())}/>)
     }
 
     return <>{elems}<Inserter/></>
