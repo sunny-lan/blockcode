@@ -1,9 +1,10 @@
 import {arrayLast2, expectNonNull, ParsedParams, parseTemplate, parseTemplateParam, Token} from "~/core/Util";
 import * as React from "react";
 import {Block, BlockChildren, BlockType, BlockWithParent} from "~core/Block";
-import {BlockRenderer, getChild, RenderProps, SelectionType} from "~/render";
-import {ChildRenderer} from "~render/BasicRenderers";
+import {BlockRenderer, EditorContext, getChild, RenderProps, SelectionType} from "~/render";
+import {ChildRenderer, Selectify} from "~render/BasicRenderers";
 import {ArrayBlock} from "~render/ArrayBlock";
+import {Hint} from "~hint";
 
 export function fromTemplate(template: string): BlockRenderer<false> {
     const tokens: [Token, ParsedParams?][] = parseTemplate(template).map(token => {
@@ -48,12 +49,11 @@ export function fromTemplate(template: string): BlockRenderer<false> {
             return token.value
         }
 
-        return <span>
+        return <Selectify {...props}>
             {tokens.map(renderToken)}
-        </span>
+        </Selectify>
     }
 }
-
 export enum BasicTags {
     sequence = 'sequence'
 }

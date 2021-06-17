@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {useContext} from 'react';
-import {BlockContext, ChildRenderProps, EditorContext} from "~render/index";
+import {BlockContext, ChildRenderProps, EditorContext, RenderProps} from "~render/index";
 import {expectNonNull, useContext2} from "~core/Util";
 import {Hint} from "~hint/index";
 
@@ -13,7 +13,6 @@ import {Hint} from "~hint/index";
  */
 export function ChildRenderer(props: EmptyBlockProps<false>) :JSX.Element{
     const {RenderUnknown} = useContext2(BlockContext)
-    const context=useContext(EditorContext)
 
     let res;
     if (props.block.type)
@@ -21,15 +20,26 @@ export function ChildRenderer(props: EmptyBlockProps<false>) :JSX.Element{
     else
         res= <EmptyBlock {...props}/>
 
+    return res
+}
+
+
+export interface SelectifyProps extends RenderProps<false>{
+    children:React.ReactNode
+}
+export function Selectify(props:SelectifyProps) {
+    const context=React.useContext(EditorContext)
+
     function activate() {
         expectNonNull(context)
-
         context.onSelect(props)
     }
+
     return <span>
-        {res}{context && <Hint onSelect={activate}/>}
+        {props.children}{props.parent && context && <Hint onSelect={activate}/>}
     </span>
 }
+
 
 export function OptChild(props: EmptyBlockProps<true>) {
     const [virtChild] = React.useState({});
@@ -82,6 +92,6 @@ export function EmptyBlock(props: EmptyBlockProps<false>) {
         </span>
     }
 
-    return res
+    return <Selectify {...props}>{res}</Selectify>
 
 }
