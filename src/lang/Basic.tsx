@@ -2,9 +2,11 @@ import {arrayLast2, expectNonNull, ParsedParams, parseTemplate, parseTemplatePar
 import * as React from "react";
 import {Block, BlockChildren, BlockType, BlockWithParent} from "~core/Block";
 import {BlockRenderer, EditorContext, getChild, RenderProps, SelectionType} from "~/render";
-import {ChildRenderer, Selectify} from "~render/BasicRenderers";
+import {ChildRenderer} from "~render/BasicRenderers";
 import {ArrayBlock} from "~render/ArrayBlock";
 import {Hint} from "~hint";
+import {Selectify} from "~render/Selectify";
+import TextInputBlock from "~render/TextInputBlock";
 
 export function fromTemplate(template: string): BlockRenderer<false> {
     const tokens: [Token, ParsedParams?][] = parseTemplate(template).map(token => {
@@ -30,13 +32,18 @@ export function fromTemplate(template: string): BlockRenderer<false> {
                             display: ('horizontal' in params.params) ? 'flex-inline' : 'flex',
                             flexDirection: ('horizontal' in params.params) ? 'row' : 'column',
                             alignItems: params.params['align'] ?? 'flex-start',
-                            marginLeft: ('indent' in params.params) ? '10px' : '0'
+                            marginLeft: ('indent' in params.params) ? '20px' : '0'
                         }} key={params.name}>
                             <ArrayBlock
                                 {...child}
                                 Separator={separator}
                             />
                         </span>
+                    } else if ('textbox' in params.params) {
+                        res = <TextInputBlock
+                            {...child}
+                            defaultText={params.params['textbox']}
+                        />
                     } else {
                         res = <ChildRenderer key={params.name} {...child}/>
                     }
@@ -54,6 +61,7 @@ export function fromTemplate(template: string): BlockRenderer<false> {
         </Selectify>
     }
 }
+
 export enum BasicTags {
     sequence = 'sequence'
 }
@@ -144,11 +152,11 @@ export function fromBlockTemplates(blockDefs: BlockDefs) {
     const basicTempl: Block[] = Object.values(blockDefs).map(hydrate);
 
 
-    function additionalBlocks(selection:SelectionType): Block[] {
+    function additionalBlocks(selection: SelectionType): Block[] {
         return []
     }
 
-    function suggestInternal(block:BlockWithParent, childName: string, selection:SelectionType): Block[] {
+    function suggestInternal(block: BlockWithParent, childName: string, selection: SelectionType): Block[] {
         if (!block.type) return [];
         const def = blockDefs[block.type];
         if (!def.children)
@@ -172,8 +180,8 @@ export function fromBlockTemplates(blockDefs: BlockDefs) {
 
     return {
         hydrate,
-        suggest(root:Block, selection:SelectionType): Block[] {
-            const parent=selection.parent;
+        suggest(root: Block, selection: SelectionType): Block[] {
+            const parent = selection.parent;
             expectNonNull(parent)
 
             return suggestInternal(parent, arrayLast2(selection.path), selection)

@@ -15,6 +15,25 @@ export function useContext2<T>(ctx:React.Context<T|undefined>):T{
     if(!res)throw new Error('Context consumed outside of producer!');
     return res
 }
+export function useActiveElement () {
+    const [active, setActive] = React.useState(document.activeElement);
+
+    const handleFocusIn = (e:FocusEvent) => {
+        setActive(document.activeElement);
+    }
+
+    React.useEffect(() => {
+        document.addEventListener('focusin', handleFocusIn)
+        return () => {
+            document.removeEventListener('focusin', handleFocusIn)
+        };
+    }, [])
+
+    return active;
+}
+export function isTextbox(obj:any){
+    return obj instanceof HTMLInputElement && obj.type == 'text';
+}
 export function compareArray<T>(array1:T[],array2:T[]):boolean{
    return array1.length === array2.length &&
        array1.every((value, index) => value === array2[index])

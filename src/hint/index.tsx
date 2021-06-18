@@ -2,7 +2,7 @@ import * as React from 'react'
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import {InView} from 'react-intersection-observer';
 import {useDebounce} from 'use-debounce';
-import {compareArray} from "~core/Util";
+import {assert, compareArray, isTextbox, useActiveElement, useContext2} from "~core/Util";
 
 type Code = string[];
 
@@ -24,15 +24,7 @@ interface HintRef {
     onCodeChange(code?: Code): void
 }
 
-interface HintContextType {
-    /**
-     * returns a unique ID for this hint
-     */
-    registerHint(ref: HintRef): string
-
-    unRegisterHint(id: string): void
-
-    setVisible(id: string, visible: boolean): void
+export interface PublicHintContext{
 
     currentCode: Code
 
@@ -41,6 +33,21 @@ interface HintContextType {
     push(letter: string): void
 
     clear(): void
+    //
+    //
+    // setEnabled(enable:boolean):void
+}
+interface HintContextType extends PublicHintContext{
+    /**
+     * returns a unique ID for this hint
+     */
+    registerHint(ref: HintRef): string
+
+    unRegisterHint(id: string): void
+
+    setVisible(id: string, visible: boolean): void
+    enabled:boolean
+
 }
 
 const HintContext = React.createContext<HintContextType | undefined>(undefined);
@@ -156,15 +163,15 @@ export function makeHintProvider(alphabet: string[]) {
     return function HintProvider(props: HintProviderProps): JSX.Element {
         const [currentCode, setCurrentCode] = useState<Code>([]);
         const [visibleDict, setVisibleDict] = useState<VDict>({});
+        const activeElem = useActiveElement();
+        const enabled=!isTextbox(activeElem);
+
         const [idMap, setIdMap] = useState<{ [id: string]: HintRef }>({});
         const [debounceVisible] = useDebounce(visibleDict, 300);
 
         //prevent the codes from changing as the user is entering the selection code
-        const visibleFinal = useLock(debounceVisible, currentCode.length > 0)
+        const visibleFinal = useLock(debounceVisible, currentCode.length > 0 || !enabled)
         const [lastVisible, setLastVisible] = useState<VDict>({})
-        //const [codes, setCodes] = useState<{ [id: string]: Code }>({});
-
-        //console.log('render HintProvider')
 
         useEffect(() => {
             console.log('recalc', Object.keys(visibleFinal))
@@ -243,15 +250,17 @@ export function makeHintProvider(alphabet: string[]) {
         }, [functions]);
 
         useEffect(() => {
-            window.addEventListener("keydown", handleKeyDown);
+            if(enabled) {
+                window.addEventListener("keydown", handleKeyDown);
 
-            return () => {
-                window.removeEventListener("keydown", handleKeyDown);
-            };
-        }, [handleKeyDown]);
+                return () => {
+                    window.removeEventListener("keydown", handleKeyDown);
+                };
+            }
+        }, [handleKeyDown,enabled]);
 
         return useMemo(() => {
-            return <HintContext.Provider value={{...functions, currentCode}}>
+            return <HintContext.Provider value={{...functions, currentCode,enabled}}>
                 {props.children}
             </HintContext.Provider>
         }, [functions, currentCode]);
@@ -267,9 +276,10 @@ export interface HintProps {
 interface HintViewProps {
     currentCode: Code
     code?: Code
+    enable:boolean
 }
 
-function _hintView({currentCode, code}: HintViewProps) {
+function _hintView({currentCode, code,enable}: HintViewProps) {
 
     if (!code) return;
 
@@ -281,8 +291,8 @@ function _hintView({currentCode, code}: HintViewProps) {
         }
     }
     return <>
-        <span style={{color: 'red'}}>{currentCode.join('')}</span>
-        <span style={{color: 'lightgray'}}>{code.slice(currentCode.length).join('')}</span>
+        <span style={{color: enable?'red':'pink'}}>{currentCode.join('')}</span>
+        <span style={{color: enable?'lightgray':`#eeeeee`}}>{code.slice(currentCode.length).join('')}</span>
     </>
 
 }
@@ -292,11 +302,9 @@ function HintView(props: HintViewProps): JSX.Element {
     return <span>{_hintView(props)}</span>
 }
 
-
 export function Hint(props: HintProps): JSX.Element {
-    const ctx = useContext(HintContext);
-    if (!ctx)
-        throw new Error('Hint cannot be used without HintProvider');
+    const ctx = useContext2(HintContext);
+
     const [id, setID] = useState<string | undefined>();
     const [code, setCode] = useState<Code | undefined>();
 
@@ -316,21 +324,24 @@ export function Hint(props: HintProps): JSX.Element {
         if (!code) return;
         if (code.length === ctx.currentCode.length) {
             if (compareArray(code, ctx.currentCode)) {
+               // assert(!ctx.enabled, 'expected to be enabled when hint is selected!');
+
                 ctx.clear()
                 props.onSelect()
             }
         }
     }, [code, ctx.currentCode]);
     return useMemo(() => {
-        if (!id) return <></>;
+        if (!id ) return <></>;
         //console.log('render hint')
         return <InView as="span" onChange={visible => {
             ctx.setVisible(id, visible)
         }}>{_hintView({
             code,
-            currentCode: ctx.currentCode
+            currentCode: ctx.currentCode,
+            enable:ctx.enabled
         })}</InView>
-    }, [id, code, ctx.currentCode]);
+    }, [id, code, ctx.currentCode,ctx.enabled]);
 
 
 }

@@ -1,7 +1,5 @@
 import * as React from "react";
-import {BlockDef, BlockDefs, fromBlockTemplates, fromTemplate, makeSequenceDef} from "~/lang/Basic";
-
-import {LanguageProvider} from "~core/Lang2";
+import {BlockDefs, fromBlockTemplates, fromTemplate, makeSequenceDef} from "~/lang/Basic";
 import {BlockRenderer, LanguageRenderer} from "~render";
 import {expectNonNull} from "~core/Util";
 
@@ -30,6 +28,9 @@ const defList = {
         type:'varDecl',
         info:{
             declaration: Declaration.variable
+        },
+        children:{
+            name:['nameDef']
         }
     },
     argDeclList:makeSequenceDef({
@@ -137,7 +138,7 @@ export function parenExpression(Wrapped: BlockRenderer<false>): BlockRenderer<fa
 
 export const ProceduralRender: LanguageRenderer = {
     codeblock: fromTemplate("\\{${statements|array,indent,separator:\n}\\}"),
-    varDecl: fromTemplate("tmp_vardecl"),
+    varDecl: fromTemplate("var ${name|textbox:name}"),
     nameDef: fromTemplate("tmp_nameDef"),
     functiondef: fromTemplate(
         "${returnType} ${name}(${args|array,horizontal,separator: })${body}"),

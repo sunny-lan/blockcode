@@ -10,7 +10,10 @@ class Context {
         template: "src/index.html"
       },
       cache : true,
-      devServer: this.runServer
+      devServer: this.runServer,
+        watch: {
+            hardReloadScripts: true,
+        },
     });
 }
 const { task } = sparky<Context>(Context);

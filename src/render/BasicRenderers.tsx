@@ -1,8 +1,7 @@
 import * as React from 'react';
-import {useContext} from 'react';
-import {BlockContext, ChildRenderProps, EditorContext, RenderProps} from "~render/index";
-import {expectNonNull, useContext2} from "~core/Util";
-import {Hint} from "~hint/index";
+import {BlockContext} from "~render/index";
+import {useContext2} from "~core/Util";
+import {EmptyBlock, EmptyBlockProps} from "~render/EmptyBlock";
 
 /**
  * Renders an arbitrary child, handles if the child is missing
@@ -11,33 +10,16 @@ import {Hint} from "~hint/index";
  * @param props
  * @constructor
  */
-export function ChildRenderer(props: EmptyBlockProps<false>) :JSX.Element{
+export function ChildRenderer(props: EmptyBlockProps<false>): JSX.Element {
     const {RenderUnknown} = useContext2(BlockContext)
 
     let res;
     if (props.block.type)
-        res= <RenderUnknown {...props}/>
+        res = <RenderUnknown {...props}/>
     else
-        res= <EmptyBlock {...props}/>
+        res = <EmptyBlock {...props}/>
 
     return res
-}
-
-
-export interface SelectifyProps extends RenderProps<false>{
-    children:React.ReactNode
-}
-export function Selectify(props:SelectifyProps) {
-    const context=React.useContext(EditorContext)
-
-    function activate() {
-        expectNonNull(context)
-        context.onSelect(props)
-    }
-
-    return <span>
-        {props.children}{props.parent && context && <Hint onSelect={activate}/>}
-    </span>
 }
 
 
@@ -48,50 +30,11 @@ export function OptChild(props: EmptyBlockProps<true>) {
 }
 
 export function OptionalChild(props: EmptyBlockProps<boolean>) {
+    //this should not need a type assert
     if (props.block) {
-        return <ChildRenderer {...props}/>
+        return <ChildRenderer {...(props as EmptyBlockProps<false>)}/>
     } else {
-        return <OptChild {...props}/>
+        return <OptChild {...(props as EmptyBlockProps<true>)}/>
     }
 }
 
-export interface EmptyBlockProps<optional extends boolean> extends ChildRenderProps<optional> {
-    /**
-     * The text displayed to help the user know what this child is supposed to be
-     */
-    childHint?: string
-}
-
-/**
- * Renders the tooltip for a missing block
- * @param props
- * @constructor
- */
-export function EmptyBlock(props: EmptyBlockProps<false>) {
-    const root = props.block, path = props.path;
-    const context = useContext(EditorContext)
-
-
-    let res: JSX.Element = <>{props.childHint ?? `<${props.childName}>`}</>;
-
-    if (context) {
-
-        const style: React.CSSProperties = {
-            background: 'none',
-            border: 'none',
-            color: 'blue'
-        };
-
-        if (context.selected === root) {
-            style.background = 'blue'
-            style.color = 'white'
-        }
-        res = <span
-            style={style}>
-            {res}
-        </span>
-    }
-
-    return <Selectify {...props}>{res}</Selectify>
-
-}
