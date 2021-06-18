@@ -36,6 +36,12 @@ export default function TextInputBlock(props: TextBlockProps) {
                 setCurrentText(undefined)
                 ctx.onSelect()
             }}
+            onKeyDown={e=>{
+                if(e.key==='Enter'){
+                    //TODO sketch
+                    document.activeElement?.blur()
+                }
+            }}
         />;
     }else{
         output=<Selectify {...props} >{output}</Selectify>

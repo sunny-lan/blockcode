@@ -51,7 +51,19 @@ export function updateNodeStr(tree: Node, path: string[], newVal: Node): Node {
         newVal
     ))
 }
-
+export function deepCopy(tree:Node):Node{
+    let children:{[name:string]:Node}|undefined=undefined;
+    if(tree.children){
+        children={}
+        for(const [name,child] of Object.entries(tree.children)){
+            children[name]=deepCopy(child)
+        }
+    }
+    return {
+        ...tree,
+        children,
+    }
+}
 /**
  * Returns the deepest matching path in the tree
  * @param tree

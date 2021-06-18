@@ -174,7 +174,7 @@ export function makeHintProvider(alphabet: string[]) {
         const [lastVisible, setLastVisible] = useState<VDict>({})
 
         useEffect(() => {
-            console.log('recalc', Object.keys(visibleFinal))
+            // console.log('recalc', Object.keys(visibleFinal))
 
             const values = Object.values(visibleFinal);
             const codeArr = utils.assignCodes(values)
@@ -199,14 +199,14 @@ export function makeHintProvider(alphabet: string[]) {
             return {
                 registerHint(ref: HintRef): string {
                     const id = (uniqId++).toString()
-                    console.log('register', id)
+                    // console.log('register', id)
                     setIdMap(idMap => {
                         return {...idMap, [id]: ref}
                     })
                     return id;
                 },
                 unRegisterHint(id: string): void {
-                    console.log('unregister', id)
+                    // console.log('unregister', id)
                     setIdMap(idMap => {
                         const {[id]: _, ...newIdMap} = idMap;
                         return newIdMap;
@@ -214,7 +214,7 @@ export function makeHintProvider(alphabet: string[]) {
                     this.setVisible(id, false)
                 },
                 setVisible(id: string, visible: boolean) {
-                    console.log('visibility change', id, visible)
+                    // console.log('visibility change', id, visible)
                     if (!visible) {
 
                         setVisibleDict(visibleDict => {
@@ -249,11 +249,14 @@ export function makeHintProvider(alphabet: string[]) {
             }
         }, [functions]);
 
+        // console.log('enabled', enabled)
         useEffect(() => {
             if(enabled) {
+                // console.log('register key')
                 window.addEventListener("keydown", handleKeyDown);
 
                 return () => {
+                    // console.log('unregister key')
                     window.removeEventListener("keydown", handleKeyDown);
                 };
             }

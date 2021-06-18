@@ -1,7 +1,7 @@
 import * as React from "react";
 import {useMemo, useState} from "react";
 import {Block} from "./Block";
-import {updateNodeStr} from "core/TreeUtils";
+import {deepCopy, updateNodeStr} from "core/TreeUtils";
 import {LanguageProvider} from "core/Lang2";
 import {EditorContext, LanguageRenderer, makeRenderer, SelectionType} from "render";
 import { Hint } from "~hint/index";
@@ -58,7 +58,7 @@ export default function Editor(props: EditorProps): JSX.Element {
         if (typeof suggestion.type !== 'string')
             throw new Error(`Suggestion type is invalid: ${suggestion.type}`);
         return <li key={suggestion.type}>
-            <strong>{suggestion.type}-<Hint onSelect={() => replaceSelection(suggestion)}/></strong>
+            <strong>{suggestion.type}-<Hint onSelect={() => replaceSelection(deepCopy(suggestion))}/></strong>
 
             <pre>{renderBlock({
                 block: suggestion,

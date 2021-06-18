@@ -24,8 +24,10 @@ export function useActiveElement () {
 
     React.useEffect(() => {
         document.addEventListener('focusin', handleFocusIn)
+        document.addEventListener('focusout', handleFocusIn)
         return () => {
             document.removeEventListener('focusin', handleFocusIn)
+            document.removeEventListener('focusout', handleFocusIn)
         };
     }, [])
 
